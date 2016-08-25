@@ -165,6 +165,7 @@ o       O o   O `Ooo.   O   OooO'  o
             self.connection.send(str.encode('quit'))
 
             # Close the server's connection down.
+            sleep(2)
             self.connection.close()
             self.s.close()
             sys.exit()

@@ -58,7 +58,7 @@ if sock:
         try:
             data = sock.recv(1024)
         except socket.error as error_message:
-            print('Something bad happened, retrying connection:', error_message)
+            print('Server closed connection:', error_message)
             sock.close()
             sock = connect_to_server()
             continue
