@@ -35,6 +35,8 @@ o       O o   O `Ooo.   O   OooO'  o
             print('Could not create socket:', error_message)
             sys.exit()
 
+        self.s.settimeout(3.0)
+
         # Bind the socket
         self._bind_the_socket()
         self._accept_connections()
@@ -85,10 +87,6 @@ o       O o   O `Ooo.   O   OooO'  o
         # Get the current working directory and print it to the console.
         print(self._send_command('single_command-getcwd'), end='')
 
-        # Start the main command loop
-        self._start_command_loop()
-        self.connection.close()
-
     def _send_command(self, command):
         """
         Send a single command to the client, and return the response.
@@ -115,15 +113,15 @@ o       O o   O `Ooo.   O   OooO'  o
         total_response = ''
         while accepting:
             response = str(self.connection.recv(self.recv_size), 'utf-8')
-            total_response += response
+            total_response += response.replace('~!_TERM_%~', '')
 
-            # If we get less data than the total recv buffer, we are done accepting data.
-            if len(response) < self.recv_size:
+            # If we get the termination string, stop accepting.
+            if response[-10:] == '~!_TERM_%~':
                 accepting = False
 
         return total_response
 
-    def _start_command_loop(self):
+    def main(self):
         """
         Send commands through to the clients.
 
@@ -143,9 +141,12 @@ o       O o   O `Ooo.   O   OooO'  o
             # Accept the response.
             while accepting:
                 response = str(self.connection.recv(self.recv_size), 'utf-8')
-                print(response.strip(), end='')
-                if len(response) < self.recv_size:
+                print(response.strip().replace('~!_TERM_%~', ''), end='')
+
+                if response[-10:] == '~!_TERM_%~':
                     accepting = False
+
+        self.connection.close()
 
     def _check_command(self, command):
         """
@@ -215,3 +216,4 @@ if __name__ == '__main__':
         listen=the_listen,
         bind_retry=the_bind_retry
     )
+    server.main()
