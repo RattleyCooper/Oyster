@@ -88,12 +88,14 @@ if sock:
         # Handle the cd command.
         if data[:2].decode('utf-8') == 'cd':
             try:
-                directory = data[3:].decode('utf-8')
+                _dir = data[3:].decode('utf-8')
+                pf = sys.platform
                 # Cross platform cd to ~/
-                if directory == '~/':
-                    directory = expanduser('~')
+                if _dir[:2] == '~/':
+                    # Get the full path.
+                    _dir = expanduser('~') + '/' + _dir[2:] if pf != 'win32' else expanduser('~') + '\\' + _dir[2:]
                 # Change the directory
-                os.chdir(directory)
+                os.chdir(_dir)
                 send_output_with_cwd('')
                 continue
             except Exception as err_msg:
