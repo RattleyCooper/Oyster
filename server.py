@@ -8,7 +8,7 @@ class Server(object):
     A simple command and control server(Reverse Shell).
     """
     def __init__(self, host="", port=6667, recv_size=1024, listen=10, bind_retry=5):
-        header = """ .oOOOo.
+        header = """\n .oOOOo.
 .O     o.
 O       o               O
 o       O              oOo
@@ -18,7 +18,7 @@ o       O o   O `Ooo.   O   OooO'  o
  `OoooO'  `OoOO `OoO'   `oO `OoO'  o
               o
            OoO'                         """
-        print(header)
+        print(header, end='\n\n')
         self.host = host
         self.port = int(port)
         self.recv_size = int(recv_size)
