@@ -35,7 +35,7 @@ o       O o   O `Ooo.   O   OooO'  o
             print('Could not create socket:', error_message)
             sys.exit()
 
-        self.s.settimeout(3.0)
+        self.s.settimeout(5.0)
 
         # Bind the socket
         self._bind_the_socket()
