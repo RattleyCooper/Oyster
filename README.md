@@ -8,7 +8,8 @@ o       O o   O `Ooo.   O   OooO'  o
 `o     O' O   o     O   o   O      O
  `OoooO'  `OoOO `OoO'   `oO `OoO'  o
               o
-           OoO'```
+           OoO'
+```
 
 Oyster is a lightweight reverse shell written in python 3.5.
 
