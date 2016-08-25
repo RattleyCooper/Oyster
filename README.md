@@ -13,7 +13,7 @@ o       O o   O `Ooo.   O   OooO'  o
 
 Oyster is a lightweight reverse shell written in python 3.5.
 
-![Demonstration of the Oyster server and client.](http://i.imgur.com/TO4P7RI.gifv)
+![Demonstration of the Oyster server and client.](http://i.imgur.com/TO4P7RI.gif)
 
 I wrote this after finding an example reverse shell on the thenewboston youtube channel.  I saw some things I wanted to
 improve, so that's what I attempted to do.  The clients will continuously try to make a connection with the server, even
