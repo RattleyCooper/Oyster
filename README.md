@@ -22,11 +22,11 @@ after the server closes the connection.
 Start `server.py` from the command line.  Here are the keyword arguments used for `server.py`:
 
 ```
-host - Host IP address.
-port - Host port.
-recv_size - Buffer size for receiving and sending data.
-listen - Maximum number of queued connections.
-bind_retry - How many times to retry binding the socket to the port.
+host        - Host IP address.
+port        - Host port.
+recv_size   - Buffer size for receiving and sending data.
+listen      - Maximum number of queued connections.
+bind_retry  - How many times to retry binding the socket to the port.
 ```
 
 ### Example
