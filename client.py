@@ -80,13 +80,21 @@ class Client(object):
                         self._send_output_with_cwd('')
                         continue
 
+                if data.decode('utf-8') == 'shutdown':
+                    self.sock.send(str.encode('~!_TERM_%~'))
+                    self.sock.close()
+                    sleep(30)
+                    continue
+
                 # Handle quit events sent from the server.
                 if data.decode('utf-8') == 'quit':
+                    self.sock.send(str.encode('~!_TERM_%~'))
                     # The control server is shutting down, so we should shutdown
                     # then start trying to reconnect for the next session.
                     self.sock.close()
                     print('Control server disconnected...')
                     print('Waiting for server...')
+                    sleep(30)
                     self.sock = self._connect_to_server()
                     continue
 
