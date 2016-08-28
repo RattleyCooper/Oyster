@@ -49,6 +49,11 @@ this happens, it will drop you into a shell for that connection.  To get
 out of the connections shell, run the `quit` command.  This will take 
 you back to the `Oyster` shell.
 
+```
+Oyster> use 10.0.0.8
+/Users/SomeUser/Where/The/Client/Is/Stashed> 
+```
+
 ### Example
 
 All of the arguments provided below are the defaults except `host`, 
