@@ -54,6 +54,25 @@ Oyster> use 10.0.0.8
 /Users/SomeUser/Where/The/Client/Is/Stashed> 
 ```
 
+### Using `sudo` with connected clients
+
+`echo` the password and pipe it into the `sudo` command with the `-S`
+flag.
+
+```
+echo "MyPassword" | sudo -S chown $USER:admin /usr/local/include
+```
+
+You may need to add a newline character to the end of your password.
+
+```
+echo "MyPassword\n" | sudo -S chown $USER:admin /usr/local/include
+```
+
+Check out the `man` pages for `sudo` on the client if this doesn't work.
+I'm not sure how much the `-S` flag differs between unix flavours.
+
+
 ### Example
 
 All of the arguments provided below are the defaults except `host`, 
