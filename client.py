@@ -7,7 +7,6 @@ from os.path import expanduser, realpath
 from time import sleep
 
 
-# Proof
 class Client(object):
     def __init__(self, host='', port=6667, recv_size=1024, server_shutdown=False, session_id='', shutdown_kill=False):
         self.host = host
