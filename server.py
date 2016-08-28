@@ -483,7 +483,6 @@ if __name__ == '__main__':
         recv_size=the_recv_size,
         listen=the_listen,
         bind_retry=the_bind_retry,
-        header=the_header
     )
 
     connection_accepter = threading.Thread(target=server.accept_connections)
