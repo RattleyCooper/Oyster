@@ -46,7 +46,7 @@ python3 server.py host=0.0.0.0 port=6667 recv_size=1024 listen=10 bind_retry=5
 
 The Oyster Shell is the main interface.  It's what you use to select 
 which clients you would like to send commands to, and push updates to 
-the `client.py` file on the target machine.
+the `client.py` file on all of the connected target machines.
 
 Commands for the `Oyster` shell are:
 
@@ -96,9 +96,11 @@ I'm not sure how much the `-S` flag differs between unix flavours.
 
 ## Client
 
-Start `client.py` on the target machine.  It's up to the user to figure
-out how to get this to run on startup or whatever.  Here are startup
-arguments.
+Start `client.py` on the target machine.  The client should keep itself
+up and running, unless it errors out for some odd reason.  When updates
+are pushed to the client from the server, the client will overwrite
+and restart itself.  It's up to the user to figure out how to get this 
+to run on startup or whatever.  Here are startup arguments.
 
 ```
 host
