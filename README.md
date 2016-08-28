@@ -33,6 +33,21 @@ listen      - Maximum number of queued connections.
 bind_retry  - How many times to retry binding the socket to the port.
 ```
 
+### Host Example
+
+All of the arguments provided below are the defaults except `host`, 
+which is a blank string as the default.
+
+```
+python3 server.py host=0.0.0.0 port=6667 recv_size=1024 listen=10 bind_retry=5
+```
+
+## Oyster Shell
+
+The Oyster Shell is the main interface.  It's what you use to select 
+which clients you would like to send commands to, and push updates to 
+the `client.py` file on the target machine.
+
 Commands for the `Oyster` shell are:
 
 ```
@@ -42,7 +57,7 @@ use {client_ip}             -   Use a client connection.  {client_ip} can be fou
 quit                        -   Shut everything down.
 ```
 
-### `use` Command
+### Oyster Shell's `use` Command
 
 The `use` command will set the current connection to the given ip.  Once
 this happens, it will drop you into a shell for that connection.  To get
@@ -72,19 +87,9 @@ echo "ClientsPassword\n" | sudo -S chown $USER:admin /usr/local/include
 Check out the `man` pages for `sudo` on the client if this doesn't work.
 I'm not sure how much the `-S` flag differs between unix flavours.
 
-
-### Example
-
-All of the arguments provided below are the defaults except `host`, 
-which is a blank string as the default.
-
-```
-python3 server.py host=0.0.0.0 port=6667 recv_size=1024 listen=10 bind_retry=5
-```
-
 ## Client
 
-Start `client.py` on the target computer.  It's up to the user to figure
+Start `client.py` on the target machine.  It's up to the user to figure
 out how to get this to run on startup or whatever.  Here are startup
 arguments.
 
@@ -94,7 +99,7 @@ port
 recv_size
 ```
 
-### Example
+### Client Example
 
 ```
 python3 client.py host=10.0.0.215 port=6667 recv_size=1024
