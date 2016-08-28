@@ -60,13 +60,13 @@ Oyster> use 10.0.0.8
 flag.
 
 ```
-echo "MyPassword" | sudo -S chown $USER:admin /usr/local/include
+echo "ClientsPassword" | sudo -S chown $USER:admin /usr/local/include
 ```
 
 You may need to add a newline character to the end of your password.
 
 ```
-echo "MyPassword\n" | sudo -S chown $USER:admin /usr/local/include
+echo "ClientsPassword\n" | sudo -S chown $USER:admin /usr/local/include
 ```
 
 Check out the `man` pages for `sudo` on the client if this doesn't work.
