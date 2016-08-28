@@ -3,3 +3,6 @@
 *.gif
 ref.py
 test.py
+new_server.py
+update.py
+*.pyc
