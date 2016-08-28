@@ -455,8 +455,6 @@ if __name__ == '__main__':
     the_recv_size = 1024
     the_listen = 10
     the_bind_retry = 5
-    the_thread_count = 2
-    the_header = True
 
     def check_cli_arg(arg):
         global the_host
@@ -464,9 +462,6 @@ if __name__ == '__main__':
         global the_recv_size
         global the_listen
         global the_bind_retry
-        global the_timeout
-        global the_thread_count
-        global the_header
 
         if 'host=' in arg:
             the_host = arg.split('=')[1]
@@ -478,11 +473,6 @@ if __name__ == '__main__':
             the_listen = int(arg.split('=')[1])
         elif 'bind_retry=' in arg:
             the_bind_retry = int(arg.split('=')[1])
-        elif 'thread_count=' in arg:
-            the_thread_count = int(arg.split('=')[1])
-        elif 'the_header=' in arg:
-            arg = arg.split('=')[1].upper()
-            the_header = True if arg == 'Y' else False
 
     for argument in sys.argv[1:]:
         check_cli_arg(argument)
