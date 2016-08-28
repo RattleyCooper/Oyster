@@ -52,8 +52,15 @@ Commands for the `Oyster` shell are:
 
 ```
 list                        -   List the connected clients.
-update all                  -   Update all the connected clients using `update.py`.  Clients will overwrite themselves and reboot themselves.
-use {client_ip}             -   Use a client connection.  {client_ip} can be found by running the `list` command.
+
+update all                  -   Update all the connected clients using 
+                                `update.py`.  Clients will overwrite 
+                                themselves and reboot themselves.
+                                
+use {client_ip}             -   Use a client connection.  {client_ip} 
+                                can be found by running the `list` 
+                                command.
+                                
 quit                        -   Shut everything down.
 ```
 
