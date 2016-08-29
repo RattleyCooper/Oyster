@@ -511,7 +511,7 @@ o       O o   O `Ooo.   O   OooO'  o
         print('< File Stashed: {} >'.format(local_filepath))
         return
 
-    def client_shell(self):
+    def start_client_shell(self):
         """
         Open up a client shell using the current connection.
 
