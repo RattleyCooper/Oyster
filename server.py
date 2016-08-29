@@ -443,8 +443,7 @@ o       O o   O `Ooo.   O   OooO'  o
 
         with open(filepath, 'wb') as f:
             f.write(b64decode(filedata))
-        self.connection_mgr.send_command('oyster getcwd')
-        print('<', filepath, 'written...', '>', '\n', self.connection_mgr.cwd, end='')
+        # print('\n<', filepath, 'written...', '>')
         return
 
     def get_file(self, filepath):
@@ -460,7 +459,7 @@ o       O o   O `Ooo.   O   OooO'  o
         t = threading.Thread(target=self.write_file_data, args=(local_filepath, filedata))
         t.start()
         return
-    
+
     def client_shell(self):
         """
         Open up a client shell using the current connection.
