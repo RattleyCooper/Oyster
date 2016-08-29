@@ -87,14 +87,18 @@ Oyster>
 There are other client shell commands besides `quit`:
 
 ```
-get file {filepath}     -   Download a file from the client.
+get "{remote filepath}" "{local filepath}"      -   Download a file from 
+                                                    the client.
+
+upload {server filepath} {client filepath}      -   Upload a file to the
+                                                    client.
 ```
 
 Example:
 
 ```
 Oyster> use 10.0.0.8
-/Users/SomeUser/Where/The/Client/Is/Stashed> get file ~/Music/song.m4a
+/Users/SomeUser/Where/The/Client/Is/Stashed> get ~/Music/song.m4a
 < Local File Path > local_song.m4a
 /Users/SomeUser/Where/The/Client/Is/Stashed> 
 ```
