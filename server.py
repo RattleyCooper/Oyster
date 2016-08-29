@@ -5,7 +5,7 @@ import socket
 import sys
 import threading
 from uuid import uuid4
-from base64 import b64encode
+from base64 import b64encode, b64decode
 from client import Client
 
 
@@ -44,11 +44,16 @@ class Connection(object):
 
         if echo:
             print('Sending Command: {}'.format(command))
-        if encode:
-            self.connection.send(str.encode(command + '~!_TERM_$~'))
-        else:
-            self.connection.send(command)
-            self.connection.send(str.encode('~!_TERM_$~'))
+        try:
+            if encode:
+                self.connection.send(str.encode(command + '~!_TERM_$~'))
+            else:
+                self.connection.send(command)
+                self.connection.send(str.encode('~!_TERM_$~'))
+        except BrokenPipeError as err_msg:
+            print('Client disconnected... Could not send last command.')
+            return
+
         return self.get_response()
 
     def get_response(self, echo=False):
@@ -393,26 +398,6 @@ o       O o   O `Ooo.   O   OooO'  o
         print(the_string, end='')
         return self
 
-    def client_shell(self):
-        """
-        Open up a client shell using the current connection.
-
-        :return:
-        """
-        self.connection_mgr.send_command('oyster getcwd')
-        while True:
-            command = input(self.connection_mgr.cwd)
-
-            if command == 'quit' or command == 'exit':
-                print('Detaching from client...\nOyster> ', end='')
-                self.connection_mgr.send_command('quit')
-                self.connection_mgr.current_connection = None
-                break
-
-            response = self.connection_mgr.send_command(command)
-            print(response, end='')
-        return
-
     def handle_upload(self):
         """
         Handle a file upload.
@@ -446,6 +431,60 @@ o       O o   O `Ooo.   O   OooO'  o
             print(err_msg)
 
         return r
+
+    def write_file_data(self, filepath, filedata):
+        """
+        Write file data to hard drive.
+
+        :param filepath:
+        :param filedata:
+        :return:
+        """
+
+        with open(filepath, 'wb') as f:
+            f.write(b64decode(filedata))
+        self.connection_mgr.send_command('oyster getcwd')
+        print('<', filepath, 'written...', '>', '\n', self.connection_mgr.cwd, end='')
+        return
+
+    def get_file(self, filepath):
+        """
+        Get a file from the server.
+
+        :param filepath:
+        :return:
+        """
+
+        filedata = self.connection_mgr.send_command('get file {}'.format(filepath))
+        local_filepath = expanduser(input('< Local File Path > '))
+        t = threading.Thread(target=self.write_file_data, args=(local_filepath, filedata))
+        t.start()
+        return
+    
+    def client_shell(self):
+        """
+        Open up a client shell using the current connection.
+
+        :return:
+        """
+        self.connection_mgr.send_command('oyster getcwd')
+        while True:
+            command = input(self.connection_mgr.cwd)
+
+            if command == 'quit' or command == 'exit':
+                print('Detaching from client...')
+                self.connection_mgr.send_command('quit')
+                self.connection_mgr.current_connection = None
+                break
+
+            if command[:9] == 'get file ':
+                filepath = command[9:]
+                self.get_file(filepath)
+                continue
+
+            response = self.connection_mgr.send_command(command)
+            print(response, end='')
+        return
 
     def open_oyster(self):
         """
@@ -489,8 +528,9 @@ o       O o   O `Ooo.   O   OooO'  o
                 self.handle_quit()
                 return False
 
-            if self.connection_mgr.current_connection is not None:
-                print(self.connection_mgr.send_command(command))
+            if len(command) > 0:
+                if self.connection_mgr.current_connection is not None:
+                    print(self.connection_mgr.send_command(command))
         return
 
     def handle_quit(self):

