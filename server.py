@@ -517,6 +517,7 @@ o       O o   O `Ooo.   O   OooO'  o
 
         :return:
         """
+
         self.connection_mgr.send_command('oyster getcwd')
         while True:
             command = input(self.connection_mgr.cwd)
@@ -700,6 +701,5 @@ if __name__ == '__main__':
     except:
         server.handle_quit()
         connection_accepter.join()
-
 
     print('Shutdown complete!')
