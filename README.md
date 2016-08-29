@@ -33,7 +33,7 @@ listen      - Maximum number of queued connections.
 bind_retry  - How many times to retry binding the socket to the port.
 ```
 
-### Host Example
+Example:
 
 All of the arguments provided below are the defaults except `host`, 
 which is a blank string as the default.
@@ -68,13 +68,34 @@ quit                        -   Shut everything down.
 
 ### Oyster Shell's `use` Command
 
-The `use` command will set the current connection to the given ip.  Once
-this happens, it will drop you into a shell for that connection.  To get
-out of the connections shell, run the `quit` command.  This will take 
-you back to the `Oyster` shell.
+The `use` command will drop you into a client shell.  This is used to 
+navigate and manipulate the client's computer.  Once this happens, it 
+will drop you into a shell for that connection.  To get out of the 
+connection's shell, run the `quit` command.  This will take you back to 
+the `Oyster` shell.
+
+Example:
 
 ```
 Oyster> use 10.0.0.8
+/Users/SomeUser/Where/The/Client/Is/Stashed> quit
+Oyster> 
+```
+
+### Client Shell Commands
+
+There are other client shell commands besides `quit`:
+
+```
+get file {filepath}     -   Download a file from the client.
+```
+
+Example:
+
+```
+Oyster> use 10.0.0.8
+/Users/SomeUser/Where/The/Client/Is/Stashed> get file ~/Music/song.m4a
+< Local File Path > local_song.m4a
 /Users/SomeUser/Where/The/Client/Is/Stashed> 
 ```
 
@@ -110,7 +131,7 @@ port
 recv_size
 ```
 
-### Client Example
+Example:
 
 ```
 python3 client.py host=10.0.0.215 port=6667 recv_size=1024
