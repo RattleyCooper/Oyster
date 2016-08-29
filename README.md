@@ -52,14 +52,13 @@ Commands for the `Oyster` shell are:
 
 ```
 list                        -   List the connected clients.
-
+    
 update all                  -   Update all the connected clients using 
                                 `update.py`.  Clients will overwrite 
                                 themselves and reboot themselves.
                                 
-use {client_ip}             -   Use a client connection.  {client_ip} 
-                                can be found by running the `list` 
-                                command.
+use {target ip/index}       -   Use a target connection.  {target ip/index} 
+                                can be found by running the `list` command.
 
 upload                      -   Upload a file to a client.
                                 
@@ -87,11 +86,11 @@ Oyster>
 There are other client shell commands besides `quit`:
 
 ```
-get "{remote filepath}" "{local filepath}"      -   Download a file from 
-                                                    the client.
+get "{target filepath}" "{local filepath}"      -   Download a file from 
+                                                    the target.
 
-upload {server filepath} {client filepath}      -   Upload a file to the
-                                                    client.
+upload {local filepath} {target filepath}       -   Upload a file to the
+                                                    target.
 ```
 
 Example:
