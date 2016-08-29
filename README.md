@@ -98,8 +98,8 @@ Example:
 
 ```
 Oyster> use 10.0.0.8
-/Users/SomeUser/Where/The/Client/Is/Stashed> get ~/Music/song.m4a
-< Local File Path > local_song.m4a
+/Users/SomeUser/Where/The/Client/Is/Stashed> get ~/Music/song.m4a song.m4a
+< File Stashed: song.m4a >
 /Users/SomeUser/Where/The/Client/Is/Stashed> 
 ```
 
