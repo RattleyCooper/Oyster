@@ -60,6 +60,8 @@ update all                  -   Update all the connected clients using
 use {client_ip}             -   Use a client connection.  {client_ip} 
                                 can be found by running the `list` 
                                 command.
+
+upload                      -   Upload a file to a client.
                                 
 quit                        -   Shut everything down.
 ```
