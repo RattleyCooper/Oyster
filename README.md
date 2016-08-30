@@ -46,7 +46,12 @@ python3 server.py host=0.0.0.0 port=6667 recv_size=1024 listen=10 bind_retry=5
 
 The Oyster Shell is the main interface.  It's what you use to select 
 which clients you would like to send commands to, and push updates to 
-the `client.py` file on all of the connected target machines.
+the `client.py` file on all of the connected target machines.  You know
+you're working with the Oyster Shell if you see the following prompt:
+
+```
+Oyster> 
+```
 
 Commands for the `Oyster` shell are:
 
@@ -68,16 +73,25 @@ quit                        -   Shut everything down.
 ### Oyster Shell's `use` Command
 
 The `use` command will drop you into a client shell.  This is used to 
-navigate and manipulate the client's computer.  Once this happens, it 
-will drop you into a shell for that connection.  To get out of the 
-connection's shell, run the `quit` command.  This will take you back to 
-the `Oyster` shell.
+navigate and manipulate the client's computer.  Once executed, the `use` 
+command will drop you into a shell for the given connection[ip address 
+or index in list].  You'll know you're in a client shell when you see an
+ip address along with a directory structure with a `> ` at the
+end:
+
+```
+<10.0.0.8> /Some/Directory> 
+```
+
+
+To get out of the connection's shell, run the `quit` command.  This will 
+take you back to the `Oyster` shell.
 
 Example:
 
 ```
 Oyster> use 10.0.0.8
-/Users/SomeUser/Where/The/Client/Is/Stashed> quit
+<10.0.0.8> /Users/SomeUser/Remote/Computer/Where/Client.py/Is/Stashed> quit
 Oyster> 
 ```
 
@@ -97,9 +111,9 @@ Example:
 
 ```
 Oyster> use 10.0.0.8
-/Users/SomeUser/Where/The/Client/Is/Stashed> get ~/Music/song.m4a song.m4a
+<10.0.0.8> /Users/SomeUser/Where/The/Client/Is/Stashed> get ~/Music/song.m4a song.m4a
 < File Stashed: song.m4a >
-/Users/SomeUser/Where/The/Client/Is/Stashed> 
+<10.0.0.8> /Users/SomeUser/Where/The/Client/Is/Stashed> 
 ```
 
 ### Using `sudo` with connected clients
