@@ -10,15 +10,10 @@ import shlex
 from client import Client
 
 
-class Event(object):
-    pass
-
-
-class ClientShellDisconnectEvent(Event):
-    pass
-
-
 class Connection(object):
+    """
+    Manages a socket object.
+    """
     def __init__(self, connection, address, recv_size=1024):
         self.connection = connection
         self.ip, self.port = address[0], address[1]
@@ -96,6 +91,9 @@ class Connection(object):
 
 
 class ConnectionManager(object):
+    """
+    Manage the Connection objects added to it.
+    """
     def __init__(self):
         self.connections = {}
         self.session_id = uuid4()
@@ -103,10 +101,22 @@ class ConnectionManager(object):
         self.cwd = None
 
     def __iter__(self):
+        """
+        Return an generator.
+
+        :return:
+        """
+
         for k, v in self.connections.items():
             yield k, v
 
     def __len__(self):
+        """
+        Return the amount of connections in the pool.
+
+        :return:
+        """
+
         return len(self.connections)
 
     def __getitem__(self, item):
@@ -133,6 +143,13 @@ class ConnectionManager(object):
         self.connections[key] = value
 
     def __delitem__(self, key):
+        """
+        Delete item connection from pool.
+
+        :param key:
+        :return:
+        """
+
         del self.connections[key]
 
     def __str__(self):
@@ -150,6 +167,12 @@ class ConnectionManager(object):
         return client_data
 
     def close(self):
+        """
+        Close a the current connection.
+
+        :return:
+        """
+
         if self.current_connection is not None:
             self.current_connection.close()
         return self
@@ -190,6 +213,13 @@ class ConnectionManager(object):
         return self.current_connection
 
     def remove_connection(self, connection):
+        """
+        Remove a connection.
+
+        :param connection:
+        :return:
+        """
+
         ip = False
         for ip, conn in self.connections.items():
             if conn == connection:
@@ -667,6 +697,7 @@ o       O o   O `Ooo.   O   OooO'  o
 
 if __name__ == '__main__':
 
+    # Set some default values.
     the_host = ''
     the_port = 6668
     the_recv_size = 1024
@@ -674,6 +705,14 @@ if __name__ == '__main__':
     the_bind_retry = 5
 
     def check_cli_arg(arg):
+        """
+        Check command line argument and manipulate the variable
+        that it controls if it matches.
+
+        :param arg:
+        :return:
+        """
+
         global the_host
         global the_port
         global the_recv_size
@@ -691,6 +730,7 @@ if __name__ == '__main__':
         elif 'bind_retry=' in arg:
             the_bind_retry = int(arg.split('=')[1])
 
+    # Check all the command line arguments
     for argument in sys.argv[1:]:
         check_cli_arg(argument)
 
@@ -702,13 +742,15 @@ if __name__ == '__main__':
         bind_retry=the_bind_retry,
     )
 
+    # Start the thread that accepts connections.
     connection_accepter = threading.Thread(target=server.accept_connections)
     connection_accepter.setDaemon(True)
-
     connection_accepter.start()
 
+    # Start the Oyster Shell.
     server.open_oyster()
 
+    # Handle the shutdown sequence.
     try:
         connection_accepter.join()
     except:
