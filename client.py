@@ -64,6 +64,7 @@ class Client(object):
         :param echo:
         :return:
         """
+
         if echo:
             print('Sending Data:', some_data)
         if encode:
@@ -136,11 +137,17 @@ class Client(object):
         return self
 
     def reboot_self(self):
+        """
+        Reboot this script.
+
+        :return:
+        """
+
         try:
             self.sock.close()
         except socket.error:
             pass
-        restart_command = [
+        rc = [
             '',
             realpath(__file__),
             'port={}'.format(self.port),
@@ -149,10 +156,16 @@ class Client(object):
             'server_shutdown={}'.format(self.server_shutdown),
             'session_id='.format(self.session_id)
         ]
-        execv(sys.executable, restart_command)
+        execv(sys.executable, rc)
         sys.exit()
 
     def negotiate_server_shutdown(self):
+        """
+        Negotiate a server shutdown.
+
+        :return:
+        """
+
         if self.server_shutdown:
             self.send_data('Y')
             self.sock.close()
@@ -164,6 +177,12 @@ class Client(object):
         return self
 
     def handle_disconnect(self):
+        """
+        Handle a disconnect event.
+
+        :return:
+        """
+
         print('Disconnecting...')
         # Handle a disconnect command.
         self.send_data('confirmed')
@@ -251,6 +270,7 @@ class Client(object):
                         self.negotiate_server_shutdown()
                         continue
 
+                    # Handle a connect event.
                     if data[:7] == 'connect':
                         try:
                             uuid = data.split(' ')[1]
@@ -273,10 +293,12 @@ class Client(object):
                             self.session_id = uuid
                         continue
 
+                    # Send a pong back.
                     if data == 'oyster ping':
                         self.send_data('pong')
                         continue
 
+                    # Disconnect from the server.
                     if data == 'disconnect':
                         self.handle_disconnect()
                         continue
@@ -298,6 +320,8 @@ class Client(object):
                         sleep(1)
                         continue
 
+                    # Handle a get command sent from server.
+                    # Send the file data back.
                     if data[:4] == 'get ':
                         try:
                             with open(data[4:].strip(), 'rb') as f:
