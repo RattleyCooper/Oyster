@@ -1,8 +1,8 @@
+import sys
 import os
-from os import execv
 import socket
 import subprocess
-import sys
+from os import execv
 from os.path import expanduser, realpath
 from base64 import b64decode, b64encode
 from time import sleep

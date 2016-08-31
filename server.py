@@ -1,12 +1,12 @@
+import sys
+import threading
+import socket
+import shlex
 from time import sleep
 from os.path import expanduser
 from os import execv
-import socket
-import sys
-import threading
 from uuid import uuid4
 from base64 import b64encode, b64decode
-import shlex
 from client import Client
 
 
