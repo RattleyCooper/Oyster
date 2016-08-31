@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 import threading
 import socket
@@ -107,8 +108,12 @@ class ConnectionManager(object):
         :return:
         """
 
-        for k, v in self.connections.items():
-            yield k, v
+        try:
+            for k, v in self.connections.iteritems():
+                yield k, v
+        except:
+            for k, v in self.connections.items():
+                yield k, v
 
     def __len__(self):
         """
