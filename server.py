@@ -11,6 +11,22 @@ from base64 import b64encode, b64decode
 from client import Client
 
 
+def safe_input(display_string):
+    """
+    Get input from user.  Should work with python 2.7 and 3.x
+
+    :param display_string:
+    :return:
+    """
+    
+    try:
+        x = raw_input(display_string)
+    except NameError:
+        x = input(display_string)
+
+    return x
+
+
 class Connection(object):
     """
     Manages a socket object.
@@ -487,14 +503,16 @@ o       O o   O `Ooo.   O   OooO'  o
 
         if self.connection_mgr.current_connection is None:
             print(self.connection_mgr)
-            connection_id = input('< Enter Client IP or Index > ')
+            connection_id = safe_input('< Enter Client IP or Index > ')
         else:
             connection_id = None
 
         # Handle the filepaths variable
         if filepaths is None:
-            local_filepath = expanduser(input('< Local File Path > '))
-            remote_filepath = input('< Remote File Path > ')
+
+            local_filepath = expanduser(safe_input('< Local File Path >'))
+            remote_filepath = safe_input('< Remote File Path >')
+
         else:
             try:
                 local_filepath, remote_filepath = shlex.split(filepaths)
@@ -560,7 +578,7 @@ o       O o   O `Ooo.   O   OooO'  o
         self.connection_mgr.send_command('oyster getcwd')
         while True:
             input_string = "<{}> {}".format(self.connection_mgr.send_command('get ip'), self.connection_mgr.cwd)
-            command = input(input_string)
+            command = safe_input(input_string)
 
             if command == 'quit' or command == 'exit':
                 print('Detaching from client...')
@@ -616,7 +634,7 @@ o       O o   O `Ooo.   O   OooO'  o
 
         sleep(1)
         while True:
-            command = input('Oyster> ')
+            command = safe_input('Oyster> ')
 
             # List connected clients.
             if command == 'list':

