@@ -80,7 +80,7 @@ class Connection(object):
             return False
         return closed
 
-    def send_command(self, command, echo=False, encode=True):
+    def send_command(self, command, echo=False, encode=True, file_response=False):
         """
         Send a command to the connection.
 
@@ -100,7 +100,7 @@ class Connection(object):
                 self.connection.send(str.encode('~!_TERM_$~'))
         except BrokenPipeError as err_msg:
             self.status = 'CLOSED'
-            print('Client disconnected... Could not send last command.  Type quit into the console.')
+            print('Client disconnected...')
             self.try_close(self.connection)
             return False
         except OSError as err_msg:
@@ -108,7 +108,47 @@ class Connection(object):
             self.status = 'CLOSED'
             return False
 
+        if file_response:
+            print('Getting file response...')
+            return self.get_file_response(file_response)
+
         return self.get_response()
+
+    def get_file_response(self, filepath, echo=False):
+        """
+        Receive a response from the server.
+
+        :return:
+        """
+
+        data_package = ''
+        while True:
+            try:
+                data = self.connection.recv(self.recv_size)
+            except ConnectionResetError:
+                print('Connection reset by peer.')
+                break
+            if len(data) < 1:
+                continue
+            d = data.decode('utf-8')
+
+            term_space = d[-10:]
+            if term_space == '~!_TERM_$~':
+                d = d[:-10]
+
+            if d[:9] == '[Errno 2]':
+                return d
+            with open(filepath, 'a+b') as f:
+                _ = b64decode(d)
+                f.write(_)
+
+            data_package = data_package + d + term_space if len(data_package) < 1 else data_package[-15:] + d + term_space
+            # print('Data:', repr(d))
+            if data_package[-10:] == '~!_TERM_$~':
+                # print('Got termination string!')
+                break
+
+        return filepath
 
     def get_response(self, echo=False):
         """
@@ -284,7 +324,7 @@ class ConnectionManager(object):
             del self.connections[ip]
         return self
 
-    def send_command(self, command, echo=False, encode=True):
+    def send_command(self, command, echo=False, encode=True, file_response=False):
         """
         Send a command to a specific client.
 
@@ -299,7 +339,7 @@ class ConnectionManager(object):
             return ''
 
         try:
-            response = self.current_connection.send_command(command, encode=encode)
+            response = self.current_connection.send_command(command, encode=encode, file_response=file_response)
         except BrokenPipeError as err_msg:
             self.current_connection = None
             return
@@ -548,6 +588,7 @@ o       O o   O `Ooo.   O   OooO'  o
         else:
             try:
                 local_filepath, remote_filepath = shlex.split(filepaths)
+                local_filepath = expanduser(local_filepath)
             except ValueError as err_msg:
                 print('ValueError handling upload:', err_msg)
                 return
@@ -579,7 +620,7 @@ o       O o   O `Ooo.   O   OooO'  o
         :return:
         """
 
-        with open(filepath, 'wb') as f:
+        with open(expanduser(filepath), 'wb') as f:
             f.write(b64decode(filedata))
         # print('\n<', filepath, 'written...', '>')
         return
@@ -594,10 +635,12 @@ o       O o   O `Ooo.   O   OooO'  o
 
         remote_filepath, local_filepath = shlex.split(filepaths)
 
-        filedata = self.connection_mgr.send_command('get {}'.format(remote_filepath))
-        t = threading.Thread(target=self.write_file_data, args=(local_filepath, filedata))
-        t.start()
-        print('< File Stashed: {} >'.format(local_filepath))
+        response = self.connection_mgr.send_command('get {}'.format(remote_filepath), file_response=expanduser(local_filepath))
+        # t = threading.Thread(target=self.write_file_data, args=(local_filepath, filedata))
+        # t.start()
+        print('< < {} > >'.format(response))
+        if 'Errno' not in response:
+            print('< File Stashed: {} >'.format(expanduser(local_filepath)))
         return
 
     def start_client_shell(self):
