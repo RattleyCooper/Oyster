@@ -31,10 +31,12 @@ class Connection(object):
     """
     Manages a socket object.
     """
+
     def __init__(self, connection, address, recv_size=1024):
         self.connection = connection
         self.ip, self.port = address[0], address[1]
         self.recv_size = int(recv_size)
+        self.status = 'OPEN'
 
     def close(self):
         """
@@ -45,13 +47,38 @@ class Connection(object):
 
         self.send_command('disconnect')
         closing = True
+        self.status = 'CLOSED'
         while closing:
             try:
                 self.connection.close()
-            except:
+            except OSError as e:
+                if e.errno == 9:
+                    continue
+            except Exception as e:
                 continue
             closing = False
         return self
+
+    def try_close(self, connection):
+        """
+        Try to close a connection.
+
+        :param connection:
+        :return:
+        """
+
+        closed = False
+        self.status = 'CLOSED'
+        try:
+            connection.close()
+            closed = True
+        except OSError as e:
+            # Bad file descriptor / writing to socket.
+            if e.errno == 9:
+                return True
+        except Exception as e:
+            return False
+        return closed
 
     def send_command(self, command, echo=False, encode=True):
         """
@@ -72,9 +99,14 @@ class Connection(object):
                 self.connection.send(command)
                 self.connection.send(str.encode('~!_TERM_$~'))
         except BrokenPipeError as err_msg:
+            self.status = 'CLOSED'
             print('Client disconnected... Could not send last command.  Type quit into the console.')
-            self.connection.close()
-            return
+            self.try_close(self.connection)
+            return False
+        except OSError as err_msg:
+            # Client connection is already closed.
+            self.status = 'CLOSED'
+            return False
 
         return self.get_response()
 
@@ -111,6 +143,7 @@ class ConnectionManager(object):
     """
     Manage the Connection objects added to it.
     """
+
     def __init__(self):
         self.connections = {}
         self.session_id = uuid4()
@@ -222,8 +255,8 @@ class ConnectionManager(object):
         if use_index:
             try:
                 self.current_connection = list(self.connections.values())[int(ip)]
-            except KeyError:
-                print('No connection for the given key')
+            except (KeyError, IndexError):
+                print('No connection for the given key/index')
                 return None
         else:
             try:
@@ -255,7 +288,6 @@ class ConnectionManager(object):
         """
         Send a command to a specific client.
 
-        :param ip:
         :param command:
         :param echo:
         :param encode:
@@ -578,6 +610,8 @@ o       O o   O `Ooo.   O   OooO'  o
         self.connection_mgr.send_command('oyster getcwd')
         while True:
             input_string = "<{}> {}".format(self.connection_mgr.send_command('get ip'), self.connection_mgr.cwd)
+            if self.connection_mgr.current_connection.status == 'CLOSED':
+                return
             command = safe_input(input_string)
 
             if command == 'quit' or command == 'exit':
@@ -722,7 +756,7 @@ if __name__ == '__main__':
 
     # Set some default values.
     the_host = ''
-    the_port = 6668
+    the_port = 6667
     the_recv_size = 1024
     the_listen = 10
     the_bind_retry = 5
