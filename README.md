@@ -13,7 +13,8 @@ o       O o   O `Ooo.   O   OooO'  o
 
 Oyster is a lightweight multi-threaded reverse shell written in python 
 3.5.  The server can push updates to the clients, and the clients will
-overwrite/restart themselves.
+overwrite/restart themselves.  Client commands can also be added using
+the plugin system.
 
 I wrote this after finding an example reverse shell on the thenewboston 
 youtube channel.  I saw some things I wanted to improve, so that's what 
@@ -109,6 +110,15 @@ upload {local filepath} {target filepath}       -   Upload a file to the
 sysinfo                                         -   Get system info from
                                                     the target.
 ```
+
+### Adding Client Commands
+
+A plugin api is available for adding client commands. The `get` command
+is actually implemented as a plugin.  Check out the `Get.py` file in the
+`plugins` folder for an [example plugin](https://github.com/Wykleph/Oyster/blob/master/plugins/Get.py).
+
+The `plugins/Get.py` file is what handles the `get` command sent from 
+the server.
 
 Example:
 
