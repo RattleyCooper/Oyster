@@ -13,8 +13,8 @@ o       O o   O `Ooo.   O   OooO'  o
 
 Oyster is a lightweight multi-threaded reverse shell written in python 
 3.5.  The server can push updates to the clients, and the clients will
-overwrite/restart themselves.  Client commands can also be added using
-the plugin system.
+overwrite/restart themselves.  Client/Server/Server Shell commands can 
+also be added using the plugin system.
 
 I wrote this after finding an example reverse shell on the thenewboston 
 youtube channel.  I saw some things I wanted to improve, so that's what 
@@ -111,15 +111,6 @@ sysinfo                                         -   Get system info from
                                                     the target.
 ```
 
-### Adding Client Commands
-
-A plugin api is available for adding client commands. The `get` command
-is actually implemented as a plugin.  Check out the `Get.py` file in the
-`client_plugins` folder for an [example plugin](https://github.com/Wykleph/Oyster/blob/master/client_plugins/Get.py).
-
-The `client_plugins/Get.py` file is what handles the `get` command sent from 
-the server.
-
 Example:
 
 ```
@@ -128,6 +119,46 @@ Oyster> use 10.0.0.8
 < File Stashed: song.m4a >
 <10.0.0.8> /Users/SomeUser/Where/The/Client/Is/Stashed> 
 ```
+
+### Adding Client/Server/Shell Commands
+
+A plugin api is available for adding client/server/server shell 
+commands.  The `get` command is actually implemented as a plugin.  Check 
+out the `Get.py` file in the `client_plugins` folder for an 
+[example plugin](https://github.com/Wykleph/Oyster/blob/master/client_plugins/Get.py).
+
+A client plugin must be a python file with a `Plugin` class that has an
+`invocation` attribute that tells it what command invokes the plugin, 
+and a `run` method that takes an instance of the `Client` object and 
+a string of `data` as the two arguments.  Example.  This plugin tells
+the client to echo "Hello!" back to the server:
+
+```python
+class Plugin(object):
+    """
+    Say hello to the server if it requests it.
+    """
+    
+    invocation = 'say hello'
+    
+    def run(self, client, data):
+        client.send_data('Hello!')
+```
+
+A server/server shell plugin is written exactly like a client plugin, 
+except the `run` method takes a `Server` instance as the first argument
+instead of a `Client` instance.
+
+The `client_plugins/Get.py` file is what handles the `get` command sent 
+from the server.  The `server_plugins/Get.py` file handles the 
+server-side implementation of the `get` command.  A simpler plugin 
+example can be found in the `client_plugins/SysInfo.py` file.  It runs 
+some functions to gather some basic information about the clients 
+system, then sends it to the server. Be careful implementing command 
+plugins as you can override shell commands.  Look at the 
+`ChangeDirectory` plugin in the `client_plugins` to see a good example 
+of how the `cd` command is actually implemented in python, and not using 
+the native shell command.
 
 ### Using `sudo` with connected clients
 
