@@ -115,9 +115,9 @@ sysinfo                                         -   Get system info from
 
 A plugin api is available for adding client commands. The `get` command
 is actually implemented as a plugin.  Check out the `Get.py` file in the
-`plugins` folder for an [example plugin](https://github.com/Wykleph/Oyster/blob/master/plugins/Get.py).
+`client_plugins` folder for an [example plugin](https://github.com/Wykleph/Oyster/blob/master/client_plugins/Get.py).
 
-The `plugins/Get.py` file is what handles the `get` command sent from 
+The `client_plugins/Get.py` file is what handles the `get` command sent from 
 the server.
 
 Example:
