@@ -5,6 +5,10 @@ import shlex
 
 
 class Plugin(object):
+    """
+    Implementation of the `cd` command for changing directories.
+    """
+
     version = 'v1.0'
     invocation = 'cd '
 
@@ -19,14 +23,15 @@ class Plugin(object):
                 p, expusr = sys.platform, expanduser
                 # Get the full path.
                 _dir = expusr('~') + '/' + _dir[2:] if p != 'win32' else expanduser('~') + '\\' + _dir[2:]
-                p, expurs = None, None
-                del p
-                del expurs
             else:
                 _dir = shlex.split(_dir)[0]
 
             # Change the directory
             chdir(_dir)
+            # Send blank data back.  This will trigger the server to
+            # request the current working directory, which will then
+            # be displayed to the controller using the server shell.
+            # This is how it mimics the `cd` command.
             client.send_data('')
             return
         except Exception as err_msg:

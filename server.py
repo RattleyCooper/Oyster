@@ -177,8 +177,8 @@ class Connection(object):
                     continue
                 d = data.decode('utf-8')
 
-                term_space = d[-10:]
-                if term_space == '~!_TERM_$~':
+                tstring = d[-10:]
+                if tstring == '~!_TERM_$~':
                     d = d[:-10]
 
                 if d[:9] == '[Errno 2]':
@@ -188,7 +188,8 @@ class Connection(object):
                 _ = b64decode(d)
                 f.write(_)
 
-                data_package = data_package + d + term_space if len(data_package) < 1 else data_package[-15:] + d + term_space
+                # Make sure the data package persists with some old data
+                data_package = data_package + d + tstring if len(data_package) < 1 else data_package[-15:] + d + tstring
                 # print('Data:', repr(d))
                 if data_package[-10:] == '~!_TERM_$~':
                     # print('Got termination string!')
