@@ -13,16 +13,16 @@ from importlib import reload
 
 def get_plugins():
     """
-    Dynamically import any plugins in the `plugins` package.
+    Dynamically import any client_plugins in the `client_plugins` package.
     :return:
     """
 
     plugin_list = []
-    fp = __file__.replace(__file__.split('/')[-1], '') + 'plugins'
+    fp = __file__.replace(__file__.split('/')[-1], '') + 'client_plugins'
     module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
 
     for module_name in module_names:
-        plugin = __import__('plugins.' + module_name, fromlist=[''])
+        plugin = __import__('client_plugins.' + module_name, fromlist=[''])
         plugin_list.append(plugin)
 
     return plugin_list
@@ -367,7 +367,7 @@ class Client(object):
 
                             invocation_length = len(plugin.invocation)
 
-                            # Check the data for the plugins command invocation
+                            # Check the data for the client_plugins command invocation
                             if data[:invocation_length] == plugin.invocation:
                                 print('Running Plugin...')
                                 plugin.run(self, data[invocation_length:])
