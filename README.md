@@ -75,9 +75,9 @@ quit                        -   Shut everything down.
 The `use` command will drop you into a client shell.  This is used to 
 navigate and manipulate the client's computer.  Once executed, the `use` 
 command will drop you into a shell for the given connection[ip address 
-or index in list].  You'll know you're in a client shell when you see an
-ip address along with a directory structure with a `> ` at the
-end:
+or index givin by the `list` command].  You'll know you're in a client 
+shell when you see an ip address along with a directory structure with a
+`> ` at the end:
 
 ```
 <10.0.0.8> /Some/Directory> 
