@@ -105,6 +105,9 @@ get "{target filepath}" "{local filepath}"      -   Download a file from
 
 upload {local filepath} {target filepath}       -   Upload a file to the
                                                     target.
+
+sysinfo                                         -   Get system info from
+                                                    the target.
 ```
 
 Example:

