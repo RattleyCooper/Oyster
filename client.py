@@ -10,7 +10,7 @@ from time import sleep
 from importlib import reload
 
 
-def get_plugins():
+def get_client_plugins():
     """
     Dynamically import any client_plugins in the `client_plugins` package.
     :return:
@@ -264,7 +264,9 @@ class Client(object):
 
         :return:
         """
-        plugin_list = get_plugins()
+
+        plugin_list = get_client_plugins()
+        print('Loaded {} plugins...'.format(len(plugin_list)))
 
         # If we have a socket, then proceed to receive commands.
         if self.sock:
