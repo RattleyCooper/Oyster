@@ -3,12 +3,56 @@ import sys
 import threading
 import socket
 import shlex
+from importlib import reload
 from time import sleep
+import os
 from os.path import expanduser
 from os import execv
 from uuid import uuid4
 from base64 import b64encode, b64decode
 from client import Client
+
+
+def get_server_plugins():
+    """
+    Dynamically import any server_plugins in the `server_plugins` package.
+    :return:
+    """
+
+    plugin_list = []
+    # Get the filepath of the server plugins based on the filepath of the this file.
+    fp = __file__.replace(__file__.split('/')[-1], '') + 'server_plugins'
+    # Get the names of the modules within the server_plugins folder.
+    module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
+
+    for module_name in module_names:
+        # Import the module by name
+        plugin = __import__('server_plugins.' + module_name, fromlist=[''])
+        # Add the module to the plugin list
+        plugin_list.append(plugin)
+
+    return plugin_list
+
+
+def get_shell_plugins():
+    """
+    Dynamically import any shell_plugins in the `shell_plugins` package.
+    :return:
+    """
+
+    plugin_list = []
+    # Get the filepath of the shell plugins based on the filepath of the this file.
+    fp = __file__.replace(__file__.split('/')[-1], '') + 'shell_plugins'
+    # Get the names of the modules within the shell_plugins folder.
+    module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
+
+    for module_name in module_names:
+        # Import the module by name
+        plugin = __import__('shell_plugins.' + module_name, fromlist=[''])
+        # Add the module to the plugin list
+        plugin_list.append(plugin)
+
+    return plugin_list
 
 
 def safe_input(display_string):
@@ -627,32 +671,14 @@ o       O o   O `Ooo.   O   OooO'  o
         # print('\n<', filepath, 'written...', '>')
         return
 
-    def get_file(self, filepaths):
-        """
-        Get a file from the server.
-
-        :param filepaths:
-        :return:
-        """
-
-        remote_filepath, local_filepath = shlex.split(filepaths)
-
-        response = self.connection_mgr.send_command('get {}'.format(remote_filepath), file_response=expanduser(local_filepath))
-        # < Part of old API where all file data was downloaded and saved as 1 giant chunk >
-        # < It now saves memory by writing the data to the file as it comes in. >
-        # t = threading.Thread(target=self.write_file_data, args=(local_filepath, filedata))
-        # t.start()
-        print('< < {} > >'.format(response))
-        if 'Errno' not in response:
-            print('< File Stashed: {} >'.format(expanduser(local_filepath)))
-        return
-
     def start_client_shell(self):
         """
         Open up a client shell using the current connection.
 
         :return:
         """
+
+        plugin_list = get_server_plugins()
 
         self.connection_mgr.send_command('oyster getcwd')
         while True:
@@ -674,19 +700,21 @@ o       O o   O `Ooo.   O   OooO'  o
                 self.connection_mgr.current_connection = None
                 break
 
-            # Get a file from the client.
-            # > get {remote filepath} {local filepath}
-            if command[:4] == 'get ':
-                filepaths = command[4:]
-                self.get_file(filepaths)
-                continue
+            if plugin_list:
+                plugin_ran = False
+                for _plugin in plugin_list:
+                    reload(_plugin)
+                    plugin = _plugin.Plugin()
 
-            # Upload a file to the client.
-            # > upload {local filepath} {remote filepath}
-            if command[:7] == 'upload ':
-                filepaths = command[7:]
-                print(self.handle_upload(filepaths=filepaths))
-                continue
+                    invocation_length = len(plugin.invocation)
+
+                    if command[:invocation_length] == plugin.invocation:
+                        # Remove the invocation command from the rest of the data.
+                        command = command[invocation_length:]
+                        plugin.run(self, command)
+                        plugin_ran = True
+                if plugin_ran:
+                    continue
 
             # Reboot the target's client.py file remotely.
             if command == 'shell reboot':
@@ -713,6 +741,8 @@ o       O o   O `Ooo.   O   OooO'  o
         :return:
         """
 
+        plugin_list = get_shell_plugins()
+
         sleep(1)
         while True:
             command = safe_input('Oyster> ')
@@ -722,18 +752,21 @@ o       O o   O `Ooo.   O   OooO'  o
                 print(self.connection_mgr)
                 continue
 
-            # Drop into the given connection's shell.
-            if command[:3] == 'use':
-                if command.lower() == 'use none':
-                    self.connection_mgr.use_connection(None)
-                # Use a connection.
-                r = self.connection_mgr.use_connection(command[3:].strip())
-                if r is None:
-                    print('Could not connect to client with given information.')
-                    continue
+            if plugin_list:
+                plugin_ran = False
+                for _plugin in plugin_list:
+                    reload(_plugin)
+                    plugin = _plugin.Plugin()
 
-                self.start_client_shell()
-                continue
+                    invocation_length = len(plugin.invocation)
+
+                    if command[:invocation_length] == plugin.invocation:
+                        # Remove the invocation command from the rest of the data.
+                        command = command[invocation_length:]
+                        plugin.run(self, command)
+                        plugin_ran = True
+                if plugin_ran:
+                    continue
 
             # Update all clients using the local update.py file.
             if command == 'update all':
