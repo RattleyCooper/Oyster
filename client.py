@@ -4,7 +4,7 @@ import os
 import socket
 import subprocess
 from os import execv
-from os.path import expanduser, realpath
+from os.path import realpath
 from base64 import b64decode
 from time import sleep
 import shlex
