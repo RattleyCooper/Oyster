@@ -122,31 +122,33 @@ class Connection(object):
         """
 
         data_package = ''
-        while True:
-            try:
-                data = self.connection.recv(self.recv_size)
-            except ConnectionResetError:
-                print('Connection reset by peer.')
-                break
-            if len(data) < 1:
-                continue
-            d = data.decode('utf-8')
+        with open(filepath, 'wb') as f:
+            while True:
+                try:
+                    data = self.connection.recv(self.recv_size)
+                except ConnectionResetError:
+                    print('Connection reset by peer.')
+                    break
+                if len(data) < 1:
+                    continue
+                d = data.decode('utf-8')
 
-            term_space = d[-10:]
-            if term_space == '~!_TERM_$~':
-                d = d[:-10]
+                term_space = d[-10:]
+                if term_space == '~!_TERM_$~':
+                    d = d[:-10]
 
-            if d[:9] == '[Errno 2]':
-                return d
-            with open(filepath, 'a+b') as f:
+                if d[:9] == '[Errno 2]':
+                    return d
+
+                # Write the data!
                 _ = b64decode(d)
                 f.write(_)
 
-            data_package = data_package + d + term_space if len(data_package) < 1 else data_package[-15:] + d + term_space
-            # print('Data:', repr(d))
-            if data_package[-10:] == '~!_TERM_$~':
-                # print('Got termination string!')
-                break
+                data_package = data_package + d + term_space if len(data_package) < 1 else data_package[-15:] + d + term_space
+                # print('Data:', repr(d))
+                if data_package[-10:] == '~!_TERM_$~':
+                    # print('Got termination string!')
+                    break
 
         return filepath
 
@@ -636,6 +638,8 @@ o       O o   O `Ooo.   O   OooO'  o
         remote_filepath, local_filepath = shlex.split(filepaths)
 
         response = self.connection_mgr.send_command('get {}'.format(remote_filepath), file_response=expanduser(local_filepath))
+        # < Part of old API where all file data was downloaded and saved as 1 giant chunk >
+        # < It now saves memory by writing the data to the file as it comes in. >
         # t = threading.Thread(target=self.write_file_data, args=(local_filepath, filedata))
         # t.start()
         print('< < {} > >'.format(response))
