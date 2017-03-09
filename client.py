@@ -405,33 +405,6 @@ class Client(object):
                     self.reboot_self()
                     continue
 
-                # Handle the cd command.
-                if data[:2] == 'cd':
-                    try:
-                        _dir = data[3:]
-
-                        # Cross platform cd to ~/
-                        if _dir[:2] == '~/':
-                            # Shorten variable name and function name for the next 1 liner.
-                            p, expusr = sys.platform, expanduser
-                            # Get the full path.
-                            _dir = expusr('~') + '/' + _dir[2:] if p != 'win32' else expanduser('~') + '\\' + _dir[2:]
-                            p, expurs = None, None
-                            del p
-                            del expurs
-                        else:
-                            _dir = shlex.split(_dir)[0]
-
-                        # Change the directory
-                        os.chdir(_dir)
-                        self.send_data('')
-                        continue
-                    except Exception as err_msg:
-                        # If we get any errors, send em back!
-                        err_msg = str(err_msg)
-                        self.send_data(err_msg + "\n")
-                        continue
-
                 # Process the command.
                 try:
                     cmd = subprocess.Popen(
