@@ -7,7 +7,6 @@ from os import execv
 from os.path import realpath
 from base64 import b64decode
 from time import sleep
-import shlex
 from importlib import reload
 
 
@@ -363,7 +362,10 @@ class Client(object):
                         for _plugin in plugin_list:
                             if self.reload_plugins:
                                 reload(_plugin)
-                            plugin = _plugin.Plugin()
+                            try:
+                                plugin = _plugin.Plugin()
+                            except AttributeError:
+                                continue
 
                             invocation_length = len(plugin.invocation)
 
