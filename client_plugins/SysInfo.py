@@ -22,6 +22,7 @@ Processor: {}\n\nHost Name: {}\nFQDN: {}\n
 
 
 class Plugin(object):
+    version = 'v1.0'
     invocation = 'sysinfo'
 
     def run(self, client, data):

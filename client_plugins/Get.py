@@ -41,6 +41,8 @@ class Plugin(object):
     """
     The plugin that handles the `get` command.
     """
+
+    version = 'v1.0'
     # invocation must be set to the command that invokes the plugin.
     invocation = 'get'
 
