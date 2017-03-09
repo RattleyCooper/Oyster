@@ -7,33 +7,14 @@ from os import execv
 from os.path import realpath
 from base64 import b64decode
 from time import sleep
-from importlib import reload
-
-
-def get_client_plugins():
-    """
-    Dynamically import any client_plugins in the `client_plugins` package.
-    :return:
-    """
-
-    plugin_list = []
-    fp = __file__.replace(__file__.split('/')[-1], '') + 'client_plugins'
-    module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
-
-    for module_name in module_names:
-        plugin = __import__('client_plugins.' + module_name, fromlist=[''])
-        plugin_list.append(plugin)
-
-    return plugin_list
 
 
 class Client(object):
-    def __init__(self, host='', port=6667, recv_size=1024, server_shutdown=False, session_id='', shutdown_kill=False, reload_plugins=True):
+    def __init__(self, host='', port=6667, recv_size=1024, server_shutdown=False, session_id='', shutdown_kill=False):
         self.host = host
         self.port = port
         self.recv_size = recv_size
         self.server_shutdown = server_shutdown
-        self.reload_plugins = reload_plugins
         self.shutdown_kill = shutdown_kill
         self.session_id = session_id
         self.reconnect_to_session = True
@@ -75,6 +56,26 @@ class Client(object):
 
         self.sock.send(str.encode(some_data + str(os.getcwd()) + '> ' + '~!_TERM_$~'))
         return self
+
+    def get_client_plugins(self):
+        """
+        Dynamically import any client_plugins in the `client_plugins` package.
+        :return:
+        """
+
+        plugin_list = []
+        fp = __file__.replace(__file__.split('/')[-1], '') + 'client_plugins'
+        module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
+        try:
+            module_names.remove('__pycache__')
+        except ValueError:
+            pass
+
+        for module_name in module_names:
+            plugin = __import__('client_plugins.' + module_name, fromlist=[''])
+            plugin_list.append(plugin)
+
+        return plugin_list
 
     def terminate(self):
         """
@@ -265,7 +266,7 @@ class Client(object):
         :return:
         """
 
-        plugin_list = get_client_plugins()
+        plugin_list = self.get_client_plugins()
         print('Loaded {} plugins...'.format(len(plugin_list)))
 
         # If we have a socket, then proceed to receive commands.
@@ -362,17 +363,14 @@ class Client(object):
                     if plugin_list:
                         plugin_ran = False
                         for _plugin in plugin_list:
-                            if self.reload_plugins:
-                                reload(_plugin)
-                            try:
-                                plugin = _plugin.Plugin()
-                            except AttributeError:
-                                continue
-
-                            invocation_length = len(plugin.invocation)
+                            invocation_length = len(_plugin.Plugin.invocation)
 
                             # Check the data for the client_plugins command invocation
-                            if data[:invocation_length] == plugin.invocation:
+                            if data[:invocation_length] == _plugin.Plugin.invocation:
+                                try:
+                                    plugin = _plugin.Plugin()
+                                except AttributeError:
+                                    continue
                                 print('Running Plugin...')
                                 plugin.run(self, data[invocation_length:])
                                 plugin_ran = True
@@ -446,7 +444,6 @@ if __name__ == '__main__':
     the_recv_size = 1024
     the_server_shutdown = False
     the_session_id = ''
-    the_reload_plugins = True
 
     def check_cli_arg(arg):
         global the_host
@@ -454,7 +451,6 @@ if __name__ == '__main__':
         global the_recv_size
         global the_server_shutdown
         global the_session_id
-        global the_reload_plugins
 
         if 'host=' in arg:
             the_host = arg.split('=')[1]
@@ -466,9 +462,6 @@ if __name__ == '__main__':
             the_server_shutdown = True if arg.split('=')[1].upper() == 'Y' else False
         elif 'session_id=' in arg:
             the_session_id = arg.split('=')[1].strip()
-        elif 'reload_plugins=' in arg:
-            the_reload_plugins = True if arg.split('=')[1].upper().strip() == 'Y' else False
-
 
     restart_command = list(sys.argv)
 
@@ -481,8 +474,7 @@ if __name__ == '__main__':
         port=the_port,
         recv_size=the_recv_size,
         server_shutdown=the_server_shutdown,
-        session_id=the_session_id,
-        reload_plugins=the_reload_plugins
+        session_id=the_session_id
     )
     client.main()
 

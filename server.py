@@ -3,7 +3,6 @@ import sys
 import threading
 import socket
 import shlex
-from importlib import reload
 from time import sleep
 import os
 from os.path import expanduser
@@ -11,48 +10,6 @@ from os import execv
 from uuid import uuid4
 from base64 import b64encode, b64decode
 from client import Client
-
-
-def get_server_plugins():
-    """
-    Dynamically import any server_plugins in the `server_plugins` package.
-    :return:
-    """
-
-    plugin_list = []
-    # Get the filepath of the server plugins based on the filepath of the this file.
-    fp = __file__.replace(__file__.split('/')[-1], '') + 'server_plugins'
-    # Get the names of the modules within the server_plugins folder.
-    module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
-
-    for module_name in module_names:
-        # Import the module by name
-        plugin = __import__('server_plugins.' + module_name, fromlist=[''])
-        # Add the module to the plugin list
-        plugin_list.append(plugin)
-
-    return plugin_list
-
-
-def get_shell_plugins():
-    """
-    Dynamically import any shell_plugins in the `shell_plugins` package.
-    :return:
-    """
-
-    plugin_list = []
-    # Get the filepath of the shell plugins based on the filepath of the this file.
-    fp = __file__.replace(__file__.split('/')[-1], '') + 'shell_plugins'
-    # Get the names of the modules within the shell_plugins folder.
-    module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
-
-    for module_name in module_names:
-        # Import the module by name
-        plugin = __import__('shell_plugins.' + module_name, fromlist=[''])
-        # Add the module to the plugin list
-        plugin_list.append(plugin)
-
-    return plugin_list
 
 
 def safe_input(display_string):
@@ -492,6 +449,20 @@ o       O o   O `Ooo.   O   OooO'  o
         self.create_socket()
         self.bind_socket()
 
+    def send_command(self, data, echo=False, encode=True, file_response=False):
+        """
+        Shortcut to send a command to the currently connected client in the connection manager.
+
+        :param data:
+        :param echo:
+        :param encode:
+        :param file_response:
+        :return:
+        """
+
+        response = self.connection_mgr.send_command(data, echo=echo, encode=encode, file_response=file_response)
+        return response
+
     def create_socket(self):
         """
         Create the socket.
@@ -672,6 +643,54 @@ o       O o   O `Ooo.   O   OooO'  o
         # print('\n<', filepath, 'written...', '>')
         return
 
+    def get_server_plugins(self):
+        """
+        Dynamically import any server_plugins in the `server_plugins` package.
+        :return:
+        """
+
+        plugin_list = []
+        # Get the filepath of the server plugins based on the filepath of the this file.
+        fp = __file__.replace(__file__.split('/')[-1], '') + 'server_plugins'
+        # Get the names of the modules within the server_plugins folder.
+        module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
+        try:
+            module_names.remove('__pycache__')
+        except ValueError:
+            pass
+
+        for module_name in module_names:
+            # Import the module by name
+            plugin = __import__('server_plugins.' + module_name, fromlist=[''])
+            # Add the module to the plugin list
+            plugin_list.append(plugin)
+
+        return plugin_list
+
+    def get_shell_plugins(self):
+        """
+        Dynamically import any shell_plugins in the `shell_plugins` package.
+        :return:
+        """
+
+        plugin_list = []
+        # Get the filepath of the shell plugins based on the filepath of the this file.
+        fp = __file__.replace(__file__.split('/')[-1], '') + 'shell_plugins'
+        # Get the names of the modules within the shell_plugins folder.
+        module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
+        try:
+            module_names.remove('__pycache__')
+        except ValueError:
+            pass
+
+        for module_name in module_names:
+            # Import the module by name
+            plugin = __import__('shell_plugins.' + module_name, fromlist=[''])
+            # Add the module to the plugin list
+            plugin_list.append(plugin)
+
+        return plugin_list
+
     def start_client_shell(self):
         """
         Open up a client shell using the current connection.
@@ -679,7 +698,7 @@ o       O o   O `Ooo.   O   OooO'  o
         :return:
         """
 
-        plugin_list = get_server_plugins()
+        plugin_list = self.get_server_plugins()
 
         self.connection_mgr.send_command('oyster getcwd')
         while True:
@@ -704,12 +723,10 @@ o       O o   O `Ooo.   O   OooO'  o
             if plugin_list:
                 plugin_ran = False
                 for _plugin in plugin_list:
-                    reload(_plugin)
-                    plugin = _plugin.Plugin()
+                    invocation_length = len(_plugin.Plugin.invocation)
 
-                    invocation_length = len(plugin.invocation)
-
-                    if command[:invocation_length] == plugin.invocation:
+                    if command[:invocation_length] == _plugin.Plugin.invocation:
+                        plugin = _plugin.Plugin()
                         # Remove the invocation command from the rest of the data.
                         command = command[invocation_length:]
                         plugin.run(self, command)
@@ -742,7 +759,7 @@ o       O o   O `Ooo.   O   OooO'  o
         :return:
         """
 
-        plugin_list = get_shell_plugins()
+        plugin_list = self.get_shell_plugins()
 
         sleep(1)
         while True:
@@ -756,12 +773,10 @@ o       O o   O `Ooo.   O   OooO'  o
             if plugin_list:
                 plugin_ran = False
                 for _plugin in plugin_list:
-                    reload(_plugin)
-                    plugin = _plugin.Plugin()
+                    invocation_length = len(_plugin.Plugin.invocation)
 
-                    invocation_length = len(plugin.invocation)
-
-                    if command[:invocation_length] == plugin.invocation:
+                    if command[:invocation_length] == _plugin.Plugin.invocation:
+                        plugin = _plugin.Plugin()
                         # Remove the invocation command from the rest of the data.
                         command = command[invocation_length:]
                         plugin.run(self, command)
