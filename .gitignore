@@ -7,3 +7,4 @@ new_server.py
 *.pyc
 .DS_STORE
 Example.py
+__pychache__*
