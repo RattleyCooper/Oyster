@@ -4,7 +4,6 @@
 ref.py
 test.py
 new_server.py
-update.py
 *.pyc
 .DS_STORE
 Example.py
