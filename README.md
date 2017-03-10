@@ -120,7 +120,10 @@ sysinfo                                         -   Get system info from
 
 plugins -r                                      -   Reload all plugins.
 
-plugins -l                                      -   List all plugins.                                               
+plugins -l                                      -   List all plugins.  
+                                             
+oyster reboot                                   -   Reboot the selected
+                                                    client.
 ```
 
 Example:
