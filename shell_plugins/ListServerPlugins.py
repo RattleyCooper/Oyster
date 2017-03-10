@@ -2,14 +2,35 @@ from os import listdir
 
 
 class Plugin(object):
+    """
+    Get a list of the server plugins and print them
+    """
+
     version = 'v1.0'
     invocation = 'server-plugins'
+    enabled = True
 
     def run(self, server, data):
-        fp = __file__.replace('ListServerPlugins.py', '').replace('ListServerPlugins.pyc', '').replace('shell_plugins', 'server_plugins')
-        module_names = [n.replace('.py', '').replace('.pyc', '') for n in listdir(fp) if '__' not in n]
-        module_names.insert(0, '\n< Server Plugins >')
-        print('\n'.join(module_names) + '\n')
+        plugins = server.get_server_plugins()
+
+        enabled = [
+            '{} - enabled'.format(
+                pn.__name__.replace('server_plugins.', '')
+            )
+            for pn in plugins
+            if pn.Plugin.enabled
+            ]
+
+        disabled = [
+            '{} - disabled'.format(
+                pn.__name__.replace('server_plugins.', '')
+            )
+            for pn in plugins
+            if not pn.Plugin.enabled
+            ]
+
+        output = ['\n< Server Plugins >'] + enabled + disabled
+        print('\n'.join(output) + '\n')
         return
 
 

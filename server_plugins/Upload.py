@@ -20,7 +20,13 @@ def safe_input(display_string):
 
 
 class Plugin(object):
+    """
+    Upload a file to the currently connected client
+    """
+
+    version = 'v1.0'
     invocation = 'upload '
+    enabled = True
 
     def run(self, server, data):
         """

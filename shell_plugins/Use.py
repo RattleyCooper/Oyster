@@ -4,8 +4,10 @@ class Plugin(object):
     """
     Plugin for handling the `use` command.
     """
+
     version = 'v1.0'
     invocation = 'use'
+    enabled = True
 
     def run(self, server, data):
         # Drop into the given connection's shell.

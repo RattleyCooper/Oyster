@@ -1,15 +1,36 @@
-from os import listdir
 
 
 class Plugin(object):
+    """
+    Get a list of the shell plugins and print them
+    """
+
     version = 'v1.0'
     invocation = 'shell-plugins'
+    enabled = True
 
-    def run(self, client, data):
-        fp = __file__.replace('ListShellPlugins.py', '').replace('ListShellPlugins.pyc', '')
-        module_names = [n.replace('.py', '').replace('.pyc', '') for n in listdir(fp) if '__' not in n]
-        module_names.insert(0, '\n< Shell Plugins >')
-        print('\n'.join(module_names) + '\n')
+    def run(self, server, data):
+        plugins = server.get_shell_plugins()
+
+        enabled = [
+            '{} - enabled'.format(
+                pn.__name__.replace('shell_plugins.', '')
+            )
+            for pn in plugins
+            if pn.Plugin.enabled
+        ]
+
+        disabled = [
+            '{} - disabled'.format(
+                pn.__name__.replace('shell_plugins.', '')
+            )
+            for pn in plugins
+            if not pn.Plugin.enabled
+        ]
+
+        output = ['\n< Shell Plugins >'] + enabled + disabled
+
+        print('\n'.join(output) + '\n')
         return
 
 

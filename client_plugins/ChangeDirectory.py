@@ -11,6 +11,7 @@ class Plugin(object):
 
     version = 'v1.0'
     invocation = 'cd '
+    enabled = True
 
     def run(self, client, data):
         data = data.strip()

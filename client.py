@@ -72,8 +72,8 @@ class Client(object):
             pass
 
         for module_name in module_names:
-            plugin = __import__('client_plugins.' + module_name, fromlist=[''])
-            plugin_list.append(plugin)
+            module = __import__('client_plugins.' + module_name, fromlist=[''])
+            plugin_list.append(module)
 
         return plugin_list
 
@@ -362,13 +362,14 @@ class Client(object):
                     # # # # # # # PROCESS PLUGINS # # # # # # #
                     if plugin_list:
                         plugin_ran = False
-                        for _plugin in plugin_list:
-                            invocation_length = len(_plugin.Plugin.invocation)
+                        for module in plugin_list:
+                            invocation_length = len(module.Plugin.invocation)
 
-                            # Check the data for the client_plugins command invocation
-                            if data[:invocation_length] == _plugin.Plugin.invocation:
+                            # Check the data for the client plugin command invocation
+                            # and check to see if the plugin is enabled
+                            if data[:invocation_length] == module.Plugin.invocation and module.Plugin.enabled:
                                 try:
-                                    plugin = _plugin.Plugin()
+                                    plugin = module.Plugin()
                                 except AttributeError:
                                     continue
                                 print('Running Plugin...')

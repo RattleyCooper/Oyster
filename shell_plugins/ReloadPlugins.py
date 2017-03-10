@@ -5,7 +5,13 @@ except:
 
 
 class Plugin(object):
+    """
+    Reload the shell/server plugins
+    """
+
+    version = 'v1.0'
     invocation = 'reload-plugins'
+    enabled = True
 
     def run(self, server, data):
         print('Reloading Plugins...')

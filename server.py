@@ -661,9 +661,9 @@ o       O o   O `Ooo.   O   OooO'  o
 
         for module_name in module_names:
             # Import the module by name
-            plugin = __import__('server_plugins.' + module_name, fromlist=[''])
+            module = __import__('server_plugins.' + module_name, fromlist=[''])
             # Add the module to the plugin list
-            plugin_list.append(plugin)
+            plugin_list.append(module)
 
         return plugin_list
 
@@ -685,9 +685,9 @@ o       O o   O `Ooo.   O   OooO'  o
 
         for module_name in module_names:
             # Import the module by name
-            plugin = __import__('shell_plugins.' + module_name, fromlist=[''])
+            module = __import__('shell_plugins.' + module_name, fromlist=[''])
             # Add the module to the plugin list
-            plugin_list.append(plugin)
+            plugin_list.append(module)
 
         return plugin_list
 
@@ -722,11 +722,11 @@ o       O o   O `Ooo.   O   OooO'  o
 
             if plugin_list:
                 plugin_ran = False
-                for _plugin in plugin_list:
-                    invocation_length = len(_plugin.Plugin.invocation)
+                for module in plugin_list:
+                    invocation_length = len(module.Plugin.invocation)
 
-                    if command[:invocation_length] == _plugin.Plugin.invocation:
-                        plugin = _plugin.Plugin()
+                    if command[:invocation_length] == module.Plugin.invocation and module.Plugin.enabled:
+                        plugin = module.Plugin()
                         # Remove the invocation command from the rest of the data.
                         command = command[invocation_length:]
                         plugin.run(self, command)
@@ -772,11 +772,11 @@ o       O o   O `Ooo.   O   OooO'  o
 
             if plugin_list:
                 plugin_ran = False
-                for _plugin in plugin_list:
-                    invocation_length = len(_plugin.Plugin.invocation)
+                for module in plugin_list:
+                    invocation_length = len(module.Plugin.invocation)
 
-                    if command[:invocation_length] == _plugin.Plugin.invocation:
-                        plugin = _plugin.Plugin()
+                    if command[:invocation_length] == module.Plugin.invocation and module.Plugin.enabled:
+                        plugin = module.Plugin()
                         # Remove the invocation command from the rest of the data.
                         command = command[invocation_length:]
                         plugin.run(self, command)

@@ -22,8 +22,13 @@ Processor: {}\n\nHost Name: {}\nFQDN: {}\n
 
 
 class Plugin(object):
+    """
+    Gather basic system information and send it back to the server
+    """
+
     version = 'v1.0'
     invocation = 'sysinfo'
+    enabled = True
 
     def run(self, client, data):
         client.send_data(get_sys_info())
