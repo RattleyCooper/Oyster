@@ -3,7 +3,6 @@ import sys
 import os
 import socket
 import subprocess
-from os import execv
 from os.path import realpath
 from base64 import b64decode
 from time import sleep
@@ -184,15 +183,17 @@ class Client(object):
         except socket.error:
             pass
         rc = [
-            '',
-            realpath(__file__),
+            sys.executable,
             'port={}'.format(self.port),
             'host={}'.format(self.host),
             'recv_size={}'.format(self.recv_size),
             'server_shutdown={}'.format(self.server_shutdown),
             'session_id='.format(self.session_id)
         ]
-        execv(sys.executable, rc)
+        # execv(sys.executable, rc)
+
+        p = subprocess.Popen(restart_command)
+        p.communicate()
         sys.exit()
 
     def negotiate_server_shutdown(self):
@@ -479,6 +480,10 @@ if __name__ == '__main__':
     )
     client.main()
 
-    restart_command.insert(0, '')
-    execv(sys.executable, restart_command)
+    restart_command.insert(0, sys.executable)
+
+    print('Restart Command: {}'.format(restart_command))
+    p = subprocess.Popen(restart_command)
+    p.communicate()
     sys.exit()
+pass
