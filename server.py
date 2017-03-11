@@ -516,15 +516,15 @@ o       O o   O `Ooo.   O   OooO'  o
         """
 
         while True:
-
             try:
                 conn, address = self.socket.accept()
             except socket.error as e:
                 # Loop indefinitely
                 continue
 
-            # if address[0] in self.connection_mgr.connections.keys():
-            #     continue
+            # Check to see if the address is already connected.
+            if address[0] in self.connection_mgr.connections.keys():
+                continue
 
             conn_obj = Connection(conn, address, recv_size=self.recv_size)
             should_connect = conn_obj.send_command('connect {}'.format(self.connection_mgr.session_id))
