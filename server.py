@@ -659,6 +659,9 @@ o       O o   O `Ooo.   O   OooO'  o
         fp = __file__.replace(__file__.split('/')[-1], '') + 'server_plugins'
         # Get the names of the modules within the server_plugins folder.
         module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
+        hidden_files = [n for n in os.listdir(fp) if n[0] == '.']
+        module_names = [n for n in module_names if n not in hidden_files]
+
         try:
             module_names.remove('__pycache__')
         except ValueError:

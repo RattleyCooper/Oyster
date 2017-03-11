@@ -14,6 +14,11 @@ class LoopController(object):
 
 
 class Client(object):
+    """
+    The Client object is in charge of staying connected to the Server and forwarding
+    server commands to the OS, or to Client plugins.
+    """
+
     def __init__(self, host='', port=6667, recv_size=1024, server_shutdown=False, session_id='', shutdown_kill=False):
         self.host = host
         self.port = port
@@ -59,6 +64,9 @@ class Client(object):
         plugin_list = []
         fp = __file__.replace(__file__.split('/')[-1], '') + 'client_plugins'
         module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
+        hidden_files = [n for n in os.listdir(fp) if n[0] == '.']
+        module_names = [n for n in module_names if n not in hidden_files]
+
         try:
             module_names.remove('__pycache__')
         except ValueError:
