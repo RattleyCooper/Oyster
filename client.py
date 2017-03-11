@@ -52,6 +52,7 @@ class Client(object):
     def get_client_plugins(self):
         """
         Dynamically import any client_plugins in the `client_plugins` package.
+
         :return:
         """
 
@@ -78,17 +79,20 @@ class Client(object):
 
         self.send_data('~!_TERM_$~', terminate=False)
 
-    def server_print(self, some_data):
+    def server_print(self, some_data, echo=True, encode=True, terminate=True):
         """
         A shortcut method to facilitate sending data to the server without worrying about
         whether or not there is a newline character at the end.
 
         :param some_data:
+        :param echo:
+        :param encode:
+        :param terminate:
         :return:
         """
 
         some_data = some_data + '\n' if some_data[-1] != '\n' else some_data
-        self.send_data(some_data)
+        self.send_data(some_data, echo=echo, encode=encode, terminate=terminate)
         return
 
     def send_data(self, some_data, echo=True, encode=True, terminate=True):
@@ -139,7 +143,7 @@ class Client(object):
 
             # Continue looping if there is no data.
             if len(data) < 1:
-                print('Zero data received...')
+                print('Zero data received...', end='\r')
                 self.sock.close()
                 self.sock = self._connect_to_server()
                 continue
