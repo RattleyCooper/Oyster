@@ -11,10 +11,10 @@ o       O o   O `Ooo.   O   OooO'  o
            OoO'
 ```
 
-Oyster is a lightweight multi-threaded reverse shell written in python 
-3.5.  The server can push updates to the clients, and the clients will
-overwrite/restart themselves.  Client/Server/Server Shell commands can 
-also be added using the plugin system.
+Oyster is a lightweight multi-threaded reverse shell written in pure 
+python 3.  The server can push updates to the clients, and the clients 
+will overwrite/restart themselves.  Client/Server/Server Shell commands 
+can also be added using the plugin system.
 
 I wrote this after finding an example reverse shell on the thenewboston 
 youtube channel.  I saw some things I wanted to improve, so that's what 
@@ -42,6 +42,10 @@ which is a blank string as the default.
 ```
 python3 server.py host=0.0.0.0 port=6667 recv_size=1024 listen=10 bind_retry=5
 ```
+
+You can also modify the `server.py` & `client.py` file directly to 
+hardcode the information into the starting variables if that is your
+thing.
 
 ## Oyster Shell
 
