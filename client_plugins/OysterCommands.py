@@ -22,6 +22,20 @@ class Plugin(object):
             client.server_print('Oyster requires arguments to run.\n')
             return
 
+        if args[0] == 'set-session-id':
+            client.set_session_id(args[1])
+            return
+
+        if args[0] == 'set-port':
+            client.send_data('Port set.')
+            client.connected_port = args[1]
+            return
+
+        if args[0] == 'set-ip':
+            client.send_data('IP set.')
+            client.ip_address = args[1]
+            return
+
         if args[0] == 'getcwd':
             self.send_data_with_cwd(client, '')
             return

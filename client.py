@@ -288,26 +288,9 @@ class Client(object):
                 data = self.receive_data()
 
                 if len(data) < 500:
-                    # Set the session id.
-                    if data[14:] == 'set-session-id':
-                        self.set_session_id(data.split(' ')[1])
-                        continue
-
-                    # Set the client ip so it's aware
-                    if data[:7] == 'set ip ':
-                        self.send_data('IP set.')
-                        self.ip_address = data[7:]
-                        continue
-
                     # Send ip back to server.
                     if data[:6] == 'get ip':
                         self.send_data(self.ip_address)
-                        continue
-
-                    # Set the client port so it's aware.
-                    if data[:9] == 'set port ':
-                        self.send_data('Port set.')
-                        self.connected_port = data[9:]
                         continue
 
                     # Handle a connect event.

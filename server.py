@@ -419,7 +419,7 @@ class ConnectionManager(object):
         """
 
         self.connections[str(address[0])] = Connection(connection, address)
-        # conn.send_command('set-session-id {}'.format(self.session_id))
+        # conn.send_command('oyster set-session-id {}'.format(self.session_id))
         return self
 
 
@@ -535,8 +535,8 @@ o       O o   O `Ooo.   O   OooO'  o
                 conn_obj.close()
 
             # Send the connection it's ip and port
-            conn_obj.send_command('set ip {}'.format(address[0]))
-            conn_obj.send_command('set port {}'.format(address[1]))
+            conn_obj.send_command('oyster set-ip {}'.format(address[0]))
+            conn_obj.send_command('oyster set-port {}'.format(address[1]))
 
             # Check local addresses.
             if address[0] == '127.0.0.1':
