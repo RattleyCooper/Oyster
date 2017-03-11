@@ -4,6 +4,7 @@ import subprocess
 import socket
 from time import sleep
 from os import getcwd
+from shutil import rmtree
 from os.path import realpath
 from client import LoopController
 
@@ -36,6 +37,23 @@ class Plugin(object):
             lc.should_break = True
             return lc
 
+        if args[0] == 'self-destruct':
+            client.server_print('Self-destructing in..', terminate=False)
+            client.server_print('5!', terminate=False)
+            sleep(1)
+            client.server_print('4!', terminate=False)
+            sleep(1)
+            client.server_print('3!', terminate=False)
+            sleep(1)
+            client.server_print('2!', terminate=False)
+            sleep(1)
+            client.server_print('1!', terminate=False)
+            sleep(1)
+            client.server_print('Boom!')
+
+            self.self_destruct()
+            sys.exit()
+
         # Check to see if the client should send the
         # server shutdown confirmation.
         if args[0] == 'server_shutdown?':
@@ -48,6 +66,18 @@ class Plugin(object):
             sys.exit()
 
         return
+
+    def self_destruct(self):
+        """
+        Destroy self.
+
+        :return:
+        """
+
+        filename = __file__.split('/')[-1]
+        cd = __file__.split('/')[-2]
+        directory = __file__.replace(filename, '').replace(cd + '/', '')
+        rmtree(directory)
 
     def negotiate_server_shutdown(self, client):
         """
