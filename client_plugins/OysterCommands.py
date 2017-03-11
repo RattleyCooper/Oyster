@@ -22,6 +22,28 @@ class Plugin(object):
             client.server_print('Oyster requires arguments to run.\n')
             return
 
+        # Handle the initial handshake.
+        if args[0] == 'handshake':
+            try:
+                uuid = args[1]
+            except IndexError:
+                print('No sesssion-id provided.')
+                client.send_data('False')
+                return
+
+            if uuid == client.session_id:
+                if client.reconnect_to_session:
+                    print('Connecting to session.')
+                    client.send_data('True')
+                    client.session_id = uuid
+                    return
+                print('Will not connect to current session')
+                client.send_data('False')
+                return
+            else:
+                client.send_data('True')
+                client.session_id = uuid
+
         if args[0] == 'set-session-id':
             client.set_session_id(args[1])
             return

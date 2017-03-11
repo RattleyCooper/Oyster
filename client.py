@@ -62,6 +62,7 @@ class Client(object):
         """
 
         plugin_list = []
+        # todo: Make this windows compatible.
         fp = __file__.replace(__file__.split('/')[-1], '') + 'client_plugins'
         module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
         hidden_files = [n for n in os.listdir(fp) if n[0] == '.']
@@ -294,27 +295,6 @@ class Client(object):
                         continue
 
                     # Handle a connect event.
-                    if data[:7] == 'connect':
-                        try:
-                            uuid = data.split(' ')[1]
-                        except IndexError:
-                            print('No sesssion-id provided.')
-                            self.send_data('False')
-                            continue
-
-                        if uuid == self.session_id:
-                            if self.reconnect_to_session:
-                                print('Connecting to session.')
-                                self.send_data('True')
-                                self.session_id = uuid
-                                continue
-                            print('Will not connect to current session')
-                            self.send_data('False')
-                            continue
-                        else:
-                            self.send_data('True')
-                            self.session_id = uuid
-                        continue
 
                     # Disconnect from the server.
                     if data == 'disconnect':

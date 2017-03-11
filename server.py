@@ -527,7 +527,7 @@ o       O o   O `Ooo.   O   OooO'  o
                 continue
 
             conn_obj = Connection(conn, address, recv_size=self.recv_size)
-            should_connect = conn_obj.send_command('connect {}'.format(self.connection_mgr.session_id))
+            should_connect = conn_obj.send_command('oyster handshake {}'.format(self.connection_mgr.session_id))
             should_connect = True if should_connect == 'True' else False
             if should_connect:
                 self.connection_mgr.add_connection(conn, address)
