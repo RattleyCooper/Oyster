@@ -294,8 +294,6 @@ class Client(object):
                         self.send_data(self.ip_address)
                         continue
 
-                    # Handle a connect event.
-
                     # Disconnect from the server.
                     if data == 'disconnect':
                         self.handle_disconnect()
