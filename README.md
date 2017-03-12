@@ -141,24 +141,30 @@ Oyster> use 10.0.0.8
 
 ### Adding Client/Server/Shell Commands
 
-A plugin api is available for adding client/server/server shell 
-commands.  The `get` command is actually implemented as a plugin.  Check 
-out the `Get.py` file in the `client_plugins` folder for an 
-[example plugin](https://github.com/Wykleph/Oyster/blob/master/client_plugins/Get.py).
+A plugin api is available for adding client/server/server shell commands.  
+The `get` command is actually implemented as a plugin.  Check out the 
+`Get.py` file in the `client_plugins` folder for an [example plugin](https://github.com/Wykleph/Oyster/blob/master/client_plugins/Get.py).
 
-The basic idea is that a `command` is dispatched to the `client` from
-the `server`, and then the `client` responds with a result. The `client` 
-_must_ respond with _something_, even if it is a blank string.  Most
-things can be implemented with a client-side plugin, however in certain
-cases a `server` plugin, or Oyster `shell` plugin would be required for 
-more advanced functionality(downloading files or something similar).
+
+#### Plugin Design
+
+In order to know how to write plugins, you probably need some basic info 
+on how everything works under the hood.
+
+The basic idea is that a `command`/`data` is dispatched to the `client` 
+from the `server`, and then the `client` responds with a `result` and 
+waits for another `command`. The `client` _must_ respond with _something_,
+even if it is a blank string.  A lot of commands can be implemented with 
+a client-side plugin, however in certain cases a `server` plugin, or 
+Oyster `shell` plugin would be required for more advanced functionality(
+downloading files or something similar).
 
 A client plugin must be a python file with a `Plugin` class that has a 
 `version` attribute, an `invocation` attribute that tells it what 
 command invokes the plugin. It must also contain an `enabled` attribute 
 that can be used to disable or enable plugins.  Just change the value to 
 enable or disable a plugin. A `run` method that takes an instance of the 
-`Client` object and a string of `data` as the two arguments.  Example.
+`Client` object and a string of `data` as the two arguments.  Example. 
 This plugin tells the client to `say` something(the data just gets sent 
 back to the server and printed):
 
@@ -182,11 +188,16 @@ class Plugin(object):
 
 A server/oyster shell plugin is written exactly like a client plugin, 
 except the `run` method takes a `Server` instance as the first argument
-instead of a `Client` instance.
+instead of a `Client` instance.  The `Server` instance uses a method 
+called `send_command` to send data to the `Client` instead of `send_data` 
+or `server_print`.
 
-A shell plugin only runs if you are in the `Oyster>` shell.  A server 
-plugin runs on the server-side just before a command is sent to a 
-client.  This enables all sorts of additional functionality.
+A `shell` plugin only runs if you are in the `Oyster>` shell.  A server 
+plugin runs on the server-side just before a command is sent to a client.
+This enables all sorts of additional functionality like sending commands 
+to all of the connected clients at once. The `Server` uses the
+`ConnectionManager` to manage all of the connected `client`s. 
+Documentation on the `ConnectionManager` will be coming soon.
 
 The `client_plugins/Get.py` file is what handles the `get` command sent 
 from the server.  The `server_plugins/Get.py` file handles the 
