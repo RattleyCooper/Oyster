@@ -14,6 +14,11 @@ class LoopController(object):
 
 
 class Client(object):
+    """
+    The Client object is in charge of staying connected to the Server and forwarding
+    server commands to the OS, or to Client plugins.
+    """
+
     def __init__(self, host='', port=6667, recv_size=1024, server_shutdown=False, session_id='', shutdown_kill=False):
         self.host = host
         self.port = port
@@ -52,12 +57,17 @@ class Client(object):
     def get_client_plugins(self):
         """
         Dynamically import any client_plugins in the `client_plugins` package.
+
         :return:
         """
 
         plugin_list = []
+        # todo: Make this windows compatible.
         fp = __file__.replace(__file__.split('/')[-1], '') + 'client_plugins'
         module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
+        hidden_files = [n for n in os.listdir(fp) if n[0] == '.']
+        module_names = [n for n in module_names if n not in hidden_files]
+
         try:
             module_names.remove('__pycache__')
         except ValueError:
@@ -78,17 +88,20 @@ class Client(object):
 
         self.send_data('~!_TERM_$~', terminate=False)
 
-    def server_print(self, some_data):
+    def server_print(self, some_data, echo=True, encode=True, terminate=True):
         """
         A shortcut method to facilitate sending data to the server without worrying about
         whether or not there is a newline character at the end.
 
         :param some_data:
+        :param echo:
+        :param encode:
+        :param terminate:
         :return:
         """
 
         some_data = some_data + '\n' if some_data[-1] != '\n' else some_data
-        self.send_data(some_data)
+        self.send_data(some_data, echo=echo, encode=encode, terminate=terminate)
         return
 
     def send_data(self, some_data, echo=True, encode=True, terminate=True):
@@ -139,7 +152,7 @@ class Client(object):
 
             # Continue looping if there is no data.
             if len(data) < 1:
-                print('Zero data received...')
+                print('Zero data received...', end='\r')
                 self.sock.close()
                 self.sock = self._connect_to_server()
                 continue
@@ -276,49 +289,9 @@ class Client(object):
                 data = self.receive_data()
 
                 if len(data) < 500:
-                    # Set the session id.
-                    if data[14:] == 'set-session-id':
-                        self.set_session_id(data.split(' ')[1])
-                        continue
-
-                    # Set the client ip so it's aware
-                    if data[:7] == 'set ip ':
-                        self.send_data('IP set.')
-                        self.ip_address = data[7:]
-                        continue
-
                     # Send ip back to server.
                     if data[:6] == 'get ip':
                         self.send_data(self.ip_address)
-                        continue
-
-                    # Set the client port so it's aware.
-                    if data[:9] == 'set port ':
-                        self.send_data('Port set.')
-                        self.connected_port = data[9:]
-                        continue
-
-                    # Handle a connect event.
-                    if data[:7] == 'connect':
-                        try:
-                            uuid = data.split(' ')[1]
-                        except IndexError:
-                            print('No sesssion-id provided.')
-                            self.send_data('False')
-                            continue
-
-                        if uuid == self.session_id:
-                            if self.reconnect_to_session:
-                                print('Connecting to session.')
-                                self.send_data('True')
-                                self.session_id = uuid
-                                continue
-                            print('Will not connect to current session')
-                            self.send_data('False')
-                            continue
-                        else:
-                            self.send_data('True')
-                            self.session_id = uuid
                         continue
 
                     # Disconnect from the server.
