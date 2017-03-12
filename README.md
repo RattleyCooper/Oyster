@@ -128,6 +128,8 @@ plugins -l                                      -   List all plugins.
                                              
 oyster reboot                                   -   Reboot the selected
                                                     client.
+                                                    
+oyster self-destruct                            -   Removes the client 
 ```
 
 Example:
