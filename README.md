@@ -146,26 +146,38 @@ commands.  The `get` command is actually implemented as a plugin.  Check
 out the `Get.py` file in the `client_plugins` folder for an 
 [example plugin](https://github.com/Wykleph/Oyster/blob/master/client_plugins/Get.py).
 
-A client plugin must be a python file with a `Plugin` class that has an
-`invocation` attribute that tells it what command invokes the plugin.  
-It must also contain an `enabled` attribute that can be used to disable
-or enable plugins.  Just change the value to enable or disable a plugin. 
-A `run` method that takes an instance of the `Client` object and a 
-string of `data` as the two arguments.  Example.  This plugin tells the 
-client to echo "Hello!" back to the server:
+The basic idea is that a `command` is dispatched to the `client` from
+the `server`, and then the `client` responds with a result. The `client` 
+_must_ respond with _something_, even if it is a blank string.  Most
+things can be implemented with a client-side plugin, however in certain
+cases a `server` plugin, or Oyster `shell` plugin would be required for 
+more advanced functionality(downloading files or something similar).
+
+A client plugin must be a python file with a `Plugin` class that has a 
+`version` attribute, an `invocation` attribute that tells it what 
+command invokes the plugin. It must also contain an `enabled` attribute 
+that can be used to disable or enable plugins.  Just change the value to 
+enable or disable a plugin. A `run` method that takes an instance of the 
+`Client` object and a string of `data` as the two arguments.  Example.
+This plugin tells the client to `say` something(the data just gets sent 
+back to the server and printed):
 
 ```python
+import shlex
+
 class Plugin(object):
     """
-    Say hello to the server if it requests it.
+    Make the client say something.
     """
     
     version = 'v1.0'
-    invocation = 'say hello'
+    invocation = 'say'
     enabled = True
     
     def run(self, client, data):
-        client.send_data('Hello!')
+        args = shlex.split(data)
+        
+        client.server_print(' '.join(args))
 ```
 
 A server/oyster shell plugin is written exactly like a client plugin, 
