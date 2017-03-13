@@ -1,4 +1,4 @@
-from os.path import expanduser
+from os.path import expanduser, realpath
 from base64 import b64encode
 import shlex
 
@@ -34,7 +34,6 @@ class Plugin(object):
 
         :param server:
         :param data:
-        :param filepaths:
         :return:
         """
 
@@ -67,14 +66,14 @@ class Plugin(object):
         else:
             connection = server.connection_mgr.current_connection
 
-        print(connection.send_command('upload_filepath {}'.format(remote_filepath)))
+        print(connection.send_command('upload filepath {}'.format(remote_filepath)))
 
         r = None
         try:
-            with open(local_filepath, 'rb') as f:
+            with open(expanduser(local_filepath), 'rb') as f:
                 data = b64encode(f.read())
-                r = connection.send_command('upload_data')
-                r += '\n' + connection.send_command(data, encode=False)
+                # r = connection.send_command('upload data')
+                r = '\n' + connection.send_command(data, encode=False)
         except FileNotFoundError as err_msg:
             print(err_msg)
 

