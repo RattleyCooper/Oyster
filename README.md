@@ -81,6 +81,9 @@ plugins -ls                 -   List all server plugins.
 plugins -lsh                -   List all oyster shell plugins
                                 
 quit                        -   Shut everything down.
+
+client -c                   -   Copy the client-specific files to the 
+                                "dist" folder.
 ```
 
 ### Oyster Shell's `use` Command
