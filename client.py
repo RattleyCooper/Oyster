@@ -22,12 +22,10 @@ class Client(object):
     server commands to the OS, or to Client plugins.
     """
 
-    def __init__(self, host='', port=6667, recv_size=1024, server_shutdown=False, session_id='', shutdown_kill=False):
+    def __init__(self, host='', port=6667, recv_size=1024, session_id=''):
         self.host = host
         self.port = port
         self.recv_size = recv_size
-        self.server_shutdown = server_shutdown
-        self.shutdown_kill = shutdown_kill
         self.session_id = session_id
         self.reconnect_to_session = True
         self.ip_address = '0.0.0.0'
@@ -209,7 +207,6 @@ class Client(object):
             'port={}'.format(self.port),
             'host={}'.format(self.host),
             'recv_size={}'.format(self.recv_size),
-            'server_shutdown={}'.format(self.server_shutdown),
             'session_id='.format(self.session_id)
         ]
         # execv(sys.executable, rc)
@@ -360,14 +357,12 @@ if __name__ == '__main__':
     the_host = ''
     the_port = 6667
     the_recv_size = 1024
-    the_server_shutdown = False
     the_session_id = ''
 
     def check_cli_arg(arg):
         global the_host
         global the_port
         global the_recv_size
-        global the_server_shutdown
         global the_session_id
 
         if 'host=' in arg:
@@ -376,8 +371,6 @@ if __name__ == '__main__':
             the_port = int(arg.split('=')[1])
         elif 'recv_size=' in arg:
             the_recv_size = int(arg.split('=')[1])
-        elif 'server_shutdown=' in arg:
-            the_server_shutdown = True if arg.split('=')[1].upper() == 'Y' else False
         elif 'session_id=' in arg:
             the_session_id = arg.split('=')[1].strip()
 
@@ -389,7 +382,6 @@ if __name__ == '__main__':
         host=the_host,
         port=the_port,
         recv_size=the_recv_size,
-        server_shutdown=the_server_shutdown,
         session_id=the_session_id
     )
 
