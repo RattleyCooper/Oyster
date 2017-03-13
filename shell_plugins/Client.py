@@ -39,6 +39,7 @@ class Plugin(object):
                 copy(origin, destination)
 
             copy(oyster_fp + '__init__.py', oyster_fp + 'dist/__init__.py')
+            copy(oyster_fp + 'common.py', oyster_fp + 'dist/common.py')
             copy(oyster_fp + 'client.py', oyster_fp + 'dist/client.py')
             copy(oyster_fp + 'update.py', oyster_fp + 'dist/update.py')
 
