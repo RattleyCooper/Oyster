@@ -2,14 +2,16 @@ from __future__ import print_function
 import sys
 import threading
 import socket
-import shlex
 from time import sleep
 import os
-from os.path import expanduser
 from os import execv
 from uuid import uuid4
-from base64 import b64encode, b64decode
-from client import Client
+from base64 import b64decode
+
+
+thread_control = {
+    'CONNECTION_ACCEPTER': True
+}
 
 
 def safe_input(display_string):
@@ -518,7 +520,7 @@ o       O o   O `Ooo.   O   OooO'  o
         :return:
         """
 
-        while True:
+        while thread_control['CONNECTION_ACCEPTER']:
             try:
                 conn, address = self.socket.accept()
             except socket.error as e:
@@ -541,13 +543,6 @@ o       O o   O `Ooo.   O   OooO'  o
             conn_obj.send_command('oyster set-ip {}'.format(address[0]))
             conn_obj.send_command('oyster set-port {}'.format(address[1]))
 
-            # Check local addresses.
-            if address[0] == '127.0.0.1':
-                if self.connection_mgr.server_should_shutdown('127.0.0.1'):
-                    self.connection_mgr.close_all_connections()
-                    print('< Listener Thread > Connections no longer being accepted!')
-                    break
-
             print(
                 '\n< Listener Thread > {} ({}) connected... >\n{}'.format(
                     address[0],
@@ -556,29 +551,9 @@ o       O o   O `Ooo.   O   OooO'  o
                 ),
                 end=''
             )
+
+        print('\n< Listener Thread > Connections no longer being accepted!')
         return
-
-    def update_clients(self):
-        """
-        Update all the connected clients using the `update.py` file.
-
-        :return:
-        """
-
-        print('Starting script upload...')
-        with open('update.py', 'r') as f:
-            file_data = ''
-            for line in f:
-                file_data += line
-
-            _c = "update {}".format(file_data)
-            print(self.connection_mgr.send_commands(_c))
-        sleep(.5)
-        self.connection_mgr.close()
-        self.connection_mgr.remove_connection(self.connection_mgr.current_connection)
-        self.connection_mgr.current_connection = None
-        print('Finished uploading \'update.py\' to client.')
-        return self
 
     def set_cli(self, the_string):
         """
@@ -590,20 +565,6 @@ o       O o   O `Ooo.   O   OooO'  o
 
         print(the_string, end='')
         return self
-
-    def write_file_data(self, filepath, filedata):
-        """
-        Write file data to hard drive.
-
-        :param filepath:
-        :param filedata:
-        :return:
-        """
-
-        with open(expanduser(filepath), 'wb') as f:
-            f.write(b64decode(filedata))
-        # print('\n<', filepath, 'written...', '>')
-        return
 
     def get_server_plugins(self):
         """
@@ -800,7 +761,8 @@ o       O o   O `Ooo.   O   OooO'  o
 
             # Quit the server.py app down.
             if command == 'quit' or command == 'exit' or command == 'shutdown':
-                self.handle_quit()
+                self.connection_mgr.close_all_connections()
+                thread_control['CONNECTION_ACCEPTER'] = False
                 return False
 
             # Reboot self.
@@ -813,31 +775,6 @@ o       O o   O `Ooo.   O   OooO'  o
                 if self.connection_mgr.current_connection is not None:
                     print(self.connection_mgr.send_command(command))
         return
-
-    def handle_quit(self):
-        """
-        Handle a quit event issued by the Oyster Shell.
-
-        :return:
-        """
-
-        # Open a client with the `server_shutdown` and
-        # `shutdown_kill` flags.  This will tell the
-        # client to tell the servers connection
-        # listener thread to shut itself down.
-        # Since the Oyster Shell thread is
-        # initiating the `quit` command
-        # it knows how to shut down.
-        client_shutdown = Client(
-            port=self.port,
-            recv_size=self.recv_size,
-            server_shutdown=True,
-            shutdown_kill=True
-        )
-        client_shutdown.main()
-        # Close all the connections that have been established.
-        self.connection_mgr.close_all_connections()
-        return self
 
     def reboot_self(self):
         """
@@ -908,10 +845,6 @@ if __name__ == '__main__':
     server.open_oyster()
 
     # Handle the shutdown sequence.
-    try:
-        connection_accepter.join()
-    except:
-        server.handle_quit()
-        connection_accepter.join()
+    connection_accepter.join()
 
     print('Shutdown complete!')
