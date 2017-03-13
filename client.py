@@ -6,6 +6,7 @@ import subprocess
 from os.path import realpath
 from base64 import b64decode
 from time import sleep
+from common import PluginRunner
 
 
 class LoopController(object):
@@ -16,7 +17,7 @@ class LoopController(object):
         self.return_value = None
 
 
-class Client(object):
+class Client(PluginRunner):
     """
     The Client object is in charge of staying connected to the Server and forwarding
     server commands to the OS, or to Client plugins.
@@ -304,64 +305,6 @@ class Client(object):
                 # Send the output back to control server.
                 self.send_data(output_str)
 
-    def process_plugins(self, plugin_list, data):
-        """
-        Process plugins to see if the data should be intercepted.
-
-        :param plugin_list:
-        :param data:
-        :return:
-        """
-
-        def run_plugin(_module, _data):
-            """
-            Run the plugin in the given module.
-
-            :param _module:
-            :param _data:
-            :return:
-            """
-
-            print('\n< {} >\n'.format(_module.__name__))
-            try:
-                plugin = _module.Plugin()
-            except AttributeError:
-                return False
-
-            # Remove the invocation command from the rest of the data.
-            command = _data[invocation_length:]
-            _result = plugin.run(self, command)
-            _plugin_ran = True
-            print('\n< /{} >'.format(_module.__name__))
-            return _plugin_ran, _result
-
-        if plugin_list:
-            plugin_ran = False
-            result = False
-            for module in plugin_list:
-                results = False
-
-                invocation_length = len(module.Plugin.invocation)
-                invocation_type = type(module.Plugin.invocation)
-
-                if invocation_type == list or invocation_type == tuple:
-                    invocations = list(module.Plugin.invocation)
-                    invocations.sort(key=len)
-                    invocations.reverse()
-                    for invocation in invocations:
-                        invocation_length = len(invocation)
-                        if data[:invocation_length] == invocation:
-                            results = run_plugin(module, data)
-                            break
-                elif data[:invocation_length] == module.Plugin.invocation:
-                    if module.Plugin.enabled or (hasattr(module.Plugin, 'required') and module.Plugin.required):
-                        results = run_plugin(module, data)
-
-                if not results:
-                    continue
-                plugin_ran, result = results
-
-            return plugin_ran, result
 
 if __name__ == '__main__':
     the_host = ''
