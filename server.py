@@ -5,7 +5,7 @@ import socket
 from time import sleep
 import os
 from os import execv
-from common import PluginRunner
+from common import PluginRunner, LoopController
 from connection import Connection, ConnectionManager
 
 
@@ -28,14 +28,6 @@ def safe_input(display_string):
         x = input(display_string)
 
     return x
-
-
-class LoopController(object):
-    def __init__(self):
-        self.should_break = False
-        self.should_return = False
-        self.should_continue = False
-        self.return_value = None
 
 
 class Server(PluginRunner):

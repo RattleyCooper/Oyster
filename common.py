@@ -1,5 +1,13 @@
 
 
+class LoopController(object):
+    def __init__(self):
+        self.should_break = False
+        self.should_return = False
+        self.should_continue = False
+        self.return_value = None
+
+
 class PluginRunner(object):
     def run_plugin(self, module, data, invocation_length):
         """

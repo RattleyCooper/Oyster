@@ -6,15 +6,7 @@ import subprocess
 from os.path import realpath
 from base64 import b64decode
 from time import sleep
-from common import PluginRunner
-
-
-class LoopController(object):
-    def __init__(self):
-        self.should_break = False
-        self.should_return = False
-        self.should_continue = False
-        self.return_value = None
+from common import PluginRunner, LoopController
 
 
 class Client(PluginRunner):
