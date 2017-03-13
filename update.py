@@ -345,8 +345,14 @@ class Client(object):
                 invocation_type = type(module.Plugin.invocation)
 
                 if invocation_type == list or invocation_type == tuple:
-                    if data[:invocation_length] in module.Plugin.invocation:
-                        results = run_plugin(module, data)
+                    invocations = list(module.Plugin.invocation)
+                    invocations.sort(key=len)
+                    invocations.reverse()
+                    for invocation in invocations:
+                        invocation_length = len(invocation)
+                        if data[:invocation_length] == invocation:
+                            results = run_plugin(module, data)
+                            break
                 elif data[:invocation_length] == module.Plugin.invocation:
                     if module.Plugin.enabled or (hasattr(module.Plugin, 'required') and module.Plugin.required):
                         results = run_plugin(module, data)

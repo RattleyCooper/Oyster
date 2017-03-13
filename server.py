@@ -658,8 +658,15 @@ o       O o   O `Ooo.   O   OooO'  o
                 invocation_type = type(module.Plugin.invocation)
 
                 if invocation_type == list or invocation_type == tuple:
-                    if data[:invocation_length] in module.Plugin.invocation:
-                        results = run_plugin(module, data)
+                    invocations = list(module.Plugin.invocation)
+                    invocations.sort(key=len)
+                    invocations.reverse()
+                    for invocation in invocations:
+                        invocation_length = len(invocation)
+                        if data[:invocation_length] == invocation:
+                            results = run_plugin(module, data)
+                            break
+
                 elif data[:invocation_length] == module.Plugin.invocation:
                     if module.Plugin.enabled or (hasattr(module.Plugin, 'required') and module.Plugin.required):
                         results = run_plugin(module, data)
@@ -681,28 +688,19 @@ o       O o   O `Ooo.   O   OooO'  o
 
         self.connection_mgr.send_command('oyster getcwd')
         while True:
+            if self.connection_mgr.current_connection is None:
+                return
+
             # Get the client IP to display in the input string along with the current working directory
             input_string = "<{}> {}".format(self.connection_mgr.send_command('oyster get-ip'), self.connection_mgr.cwd)
+            if self.connection_mgr.current_connection is None:
+                return
             # If the connection was closed for some reason, return which will end the client shell.
             if self.connection_mgr.current_connection.status == 'CLOSED':
                 return
 
             # Get a command from the user using the crafted input string.
             command = safe_input(input_string)
-
-            # Start processing commands.
-            if command == 'quit' or command == 'exit':
-                print('Detaching from client...')
-                try:
-                    self.connection_mgr.close()
-                except (BrokenPipeError, OSError) as err_msg:
-                    self.connection_mgr.remove_connection(self.connection_mgr.current_connection)
-                    self.connection_mgr.current_connection = None
-                    break
-
-                self.connection_mgr.remove_connection(self.connection_mgr.current_connection)
-                self.connection_mgr.current_connection = None
-                break
 
             # # # # # # # PROCESS PLUGINS # # # # # # #
             plugin_ran, loop_controller = self.process_plugins(plugin_list, command)
@@ -745,7 +743,7 @@ o       O o   O `Ooo.   O   OooO'  o
 
         sleep(1)
         while True:
-            command = safe_input('Oyster> ')
+            command = safe_input('\rOyster> ')
 
             # # # # # # # PROCESS PLUGINS # # # # # # #
             plugin_ran, loop_controller = self.process_plugins(plugin_list, command)
