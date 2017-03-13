@@ -8,3 +8,4 @@ new_server.py
 .DS_STORE
 Example.py
 __pychache__*
+dist*
