@@ -310,7 +310,7 @@ o       O o   O `Ooo.   O   OooO'  o
             # Quit the server.py app down.
             if command == 'quit' or command == 'exit' or command == 'shutdown':
                 self.connection_mgr.close_all_connections()
-                thread_control['CONNECTION_ACCEPTER'] = False
+                thread_control['ACCEPT_CONNECTIONS'] = False
                 return False
 
             # Reboot self.
