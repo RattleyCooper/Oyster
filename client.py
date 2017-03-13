@@ -11,7 +11,9 @@ from time import sleep
 class LoopController(object):
     def __init__(self):
         self.should_break = False
-        self.should_return = None
+        self.should_return = False
+        self.should_continue = False
+        self.return_value = None
 
 
 class Client(object):
@@ -258,28 +260,18 @@ class Client(object):
             while True:
                 data = self.receive_data()
 
-                # Handle setting the file upload name.
-                # if data[:16] == 'upload filepath ':
-                #     upload_filepath = data[16:]
-                #     self.send_data('Got filepath.')
-                #     continue
-
-                # # # # # # # PROCESS PLUGINS # # # # # # #
-                plugin_ran, loop_controller = self.process_plugins(plugin_list, data)
-                if plugin_ran:
-                    if isinstance(loop_controller, LoopController):
-                        if loop_controller.should_break:
-                            break
+                if not data:
+                    self.send_data('')
                     continue
 
-                # if data[:11] == 'upload data':
-                #     if not upload_filepath:
-                #         self.send_data('Requires an upload filename.  Send with `upload-filename {filename}`.')
-                #         continue
-                #     self.send_data('Send Data')
-                #     upload_data = self.receive_data()
-                #     self.handle_file_upload(upload_data, upload_filepath)
-                #     continue
+                # # # # # # # PROCESS PLUGINS # # # # # # #
+                if not data[0] == '\\':
+                    plugin_ran, loop_controller = self.process_plugins(plugin_list, data)
+                    if plugin_ran:
+                        if isinstance(loop_controller, LoopController):
+                            if loop_controller.should_break:
+                                break
+                        continue
 
                 # Process the command.
                 try:

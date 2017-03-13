@@ -31,6 +31,9 @@ def safe_input(display_string):
 class LoopController(object):
     def __init__(self):
         self.should_break = False
+        self.should_return = False
+        self.should_continue = False
+        self.return_value = None
 
 
 class Connection(object):
@@ -588,52 +591,6 @@ o       O o   O `Ooo.   O   OooO'  o
         print(the_string, end='')
         return self
 
-    def handle_upload(self, filepaths=None):
-        """
-        Handle a file upload.
-
-        :param command:
-        :return:
-        """
-
-        if self.connection_mgr.current_connection is None:
-            print(self.connection_mgr)
-            connection_id = safe_input('< Enter Client IP or Index > ')
-        else:
-            connection_id = None
-
-        # Handle the filepaths variable
-        if filepaths is None:
-
-            local_filepath = expanduser(safe_input('< Local File Path >'))
-            remote_filepath = safe_input('< Remote File Path >')
-
-        else:
-            try:
-                local_filepath, remote_filepath = shlex.split(filepaths)
-                local_filepath = expanduser(local_filepath)
-            except ValueError as err_msg:
-                print('ValueError handling upload:', err_msg)
-                return
-
-        if connection_id is not None:
-            connection = self.connection_mgr[connection_id]
-        else:
-            connection = self.connection_mgr.current_connection
-
-        print(connection.send_command('upload-filepath {}'.format(remote_filepath)))
-
-        r = None
-        try:
-            with open(local_filepath, 'rb') as f:
-                data = b64encode(f.read())
-                r = connection.send_command('upload-data')
-                r += '\n' + connection.send_command(data, encode=False)
-        except FileNotFoundError as err_msg:
-            print(err_msg)
-
-        return r
-
     def write_file_data(self, filepath, filedata):
         """
         Write file data to hard drive.
@@ -717,7 +674,7 @@ o       O o   O `Ooo.   O   OooO'  o
             :return:
             """
 
-            print('\n< {} >\n'.format(_module.__name__))
+            # print('\n< {} >\n'.format(_module.__name__))
             try:
                 plugin = _module.Plugin()
             except AttributeError:
@@ -727,7 +684,7 @@ o       O o   O `Ooo.   O   OooO'  o
             command = _data[invocation_length:]
             _result = plugin.run(self, command)
             _plugin_ran = True
-            print('\n< /{} >'.format(_module.__name__))
+            # print('\n< /{} >'.format(_module.__name__))
             return _plugin_ran, _result
 
         if plugin_list:
@@ -792,6 +749,10 @@ o       O o   O `Ooo.   O   OooO'  o
                 if isinstance(loop_controller, LoopController):
                     if loop_controller.should_break:
                         break
+                    if loop_controller.should_return:
+                        return loop_controller.return_value
+                    if loop_controller.should_continue:
+                        continue
                 continue
 
             # Reboot the target's client.py file remotely.
@@ -825,27 +786,16 @@ o       O o   O `Ooo.   O   OooO'  o
         while True:
             command = safe_input('Oyster> ')
 
-            # List connected clients.
-            if command == 'list':
-                print(self.connection_mgr)
-                continue
-
             # # # # # # # PROCESS PLUGINS # # # # # # #
             plugin_ran, loop_controller = self.process_plugins(plugin_list, command)
             if plugin_ran:
                 if isinstance(loop_controller, LoopController):
                     if loop_controller.should_break:
                         break
-                continue
-
-            # Update all clients using the local update.py file.
-            if command == 'update all':
-                self.update_clients()
-                continue
-
-            # Upload file to
-            if command == 'upload':
-                print(self.handle_upload())
+                    if loop_controller.should_return:
+                        return loop_controller.return_value
+                    if loop_controller.should_continue:
+                        continue
                 continue
 
             # Quit the server.py app down.
