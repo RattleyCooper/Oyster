@@ -268,6 +268,10 @@ class Client(object):
                         if isinstance(loop_controller, LoopController):
                             if loop_controller.should_break:
                                 break
+                            if loop_controller.should_return:
+                                return loop_controller.return_value
+                            if loop_controller.should_continue:
+                                continue
                         continue
 
                 # Process the command.
