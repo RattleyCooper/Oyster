@@ -1,4 +1,3 @@
-import shlex
 
 
 class Plugin(object):

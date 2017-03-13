@@ -1,4 +1,4 @@
-from os.path import expanduser, realpath
+from os.path import expanduser
 from base64 import b64encode
 import shlex
 

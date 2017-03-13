@@ -21,7 +21,7 @@ def safe_input(display_string):
     :param display_string:
     :return:
     """
-    
+
     try:
         x = raw_input(display_string)
     except NameError:
@@ -790,7 +790,6 @@ o       O o   O `Ooo.   O   OooO'  o
 
 
 if __name__ == '__main__':
-
     # Set some default values.
     the_host = ''
     the_port = 6667
