@@ -44,7 +44,7 @@ class Plugin(object):
 
     version = 'v1.0'
     # invocation must be set to the command that invokes the plugin.
-    invocation = 'get'
+    invocation = 'get '
     enabled = True
 
     # The run method must be set on the Plugin object in order to do anything
