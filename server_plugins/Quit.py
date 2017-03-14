@@ -12,7 +12,7 @@ class Plugin(object):
         lc = LoopControl()
 
         try:
-            server.connection_mgr.close()
+            server.connection_mgr.close_connection(server.connection_mgr.current_connection.ip)
         except (BrokenPipeError, OSError) as err_msg:
             server.connection_mgr.remove_connection(server.connection_mgr.current_connection)
             server.connection_mgr.current_connection = None
