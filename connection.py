@@ -365,6 +365,7 @@ class ConnectionManager(object):
         :return:
         """
 
+        print('Closing connection - {}...'.format(ip_address))
         self.connections[ip_address].close()
         return self
 
