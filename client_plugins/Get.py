@@ -33,7 +33,7 @@ def send_file(filepath, client):
         # Encode the file contents.
         data = b64encode(f.read())
         # Send the data over to the server.
-        client.send_data(data, encode=False, terminate=False, echo=False)
+        client.send_data(data, encode=False, chunks=True, echo=False)
         f.close()
 
 
@@ -68,7 +68,7 @@ class Plugin(object):
 
         # Send the error back to the server if the file is not found.
         except FileNotFoundError as err_msg:
-            client.send_data(str(err_msg), terminate=False)
+            client.send_data(str(err_msg), chunks=True)
 
         # Handle cases where the file is a directory
         except IsADirectoryError as err_msg:
@@ -84,7 +84,7 @@ class Plugin(object):
 
         # Send any other error back to the server as well.
         except Exception as err_msg:
-            client.send_data(str(err_msg), terminate=False)
+            client.send_data(str(err_msg), chunks=True)
 
         # Send the termination string to the server to let it know the client is done responding.
         client.terminate()

@@ -80,9 +80,9 @@ class Client(PluginRunner):
         :return:
         """
 
-        self.send_data('~!_TERM_$~', terminate=False)
+        self.send_data('~!_TERM_$~', chunks=True)
 
-    def server_print(self, some_data, echo=True, encode=True, terminate=True):
+    def server_print(self, some_data, echo=True, encode=True, chunks=False):
         """
         A shortcut method to facilitate sending data to the server without worrying about
         whether or not there is a newline character at the end.
@@ -90,22 +90,22 @@ class Client(PluginRunner):
         :param some_data:
         :param echo:
         :param encode:
-        :param terminate:
+        :param chunks:
         :return:
         """
 
         some_data = some_data + '\n' if some_data[-1] != '\n' else some_data
-        self.send_data(some_data, echo=echo, encode=encode, terminate=terminate)
+        self.send_data(some_data, echo=echo, encode=encode, chunks=chunks)
         return
 
-    def send_data(self, some_data, echo=True, encode=True, terminate=True):
+    def send_data(self, some_data, echo=True, encode=True, chunks=False):
         """
         Send data to the server with the termination string appended.
 
         :param some_data:
         :param echo:
         :param encode:
-        :param terminate:
+        :param chunks:
         :return:
         """
 
@@ -117,7 +117,7 @@ class Client(PluginRunner):
         else:
             self.sock.send(some_data)
 
-        if terminate:
+        if not chunks:
             self.sock.send(str.encode('~!_TERM_$~'))
 
         return self

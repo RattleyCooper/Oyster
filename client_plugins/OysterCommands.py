@@ -92,16 +92,16 @@ class Plugin(object):
 
         # Make the `client.py` script remove the `Oyster` folder and its contents.
         if args[0] == 'self-destruct':
-            client.server_print('Self-destructing in..', terminate=False)
-            client.server_print('5!', terminate=False)
+            client.server_print('Self-destructing in..', chunks=True)
+            client.server_print('5!', chunks=True)
             sleep(1)
-            client.server_print('4!', terminate=False)
+            client.server_print('4!', chunks=True)
             sleep(1)
-            client.server_print('3!', terminate=False)
+            client.server_print('3!', chunks=True)
             sleep(1)
-            client.server_print('2!', terminate=False)
+            client.server_print('2!', chunks=True)
             sleep(1)
-            client.server_print('1!', terminate=False)
+            client.server_print('1!', chunks=True)
             sleep(1)
             client.server_print('Boom!')
 
