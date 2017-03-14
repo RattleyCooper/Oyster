@@ -191,6 +191,7 @@ class Client(PluginRunner):
         :return:
         """
 
+        print('< Rebooting self... >')
         try:
             self.sock.close()
         except socket.error:

@@ -8,6 +8,58 @@ class LoopController(object):
         self.return_value = None
 
 
+class LoopControl(object):
+    """
+    Factory for LoopController objects.  Makes it easier to write code that uses a loop controller.
+
+    Usage changes from:
+
+        lc = LoopController()
+        lc.should_break = True
+        return lc
+
+    to:
+
+        lc = LoopControl()
+        return lc.should_break()
+    """
+
+    def should_break(self):
+        """
+        Return a breaking loop controller.
+
+        :return:
+        """
+
+        lc = LoopController()
+        lc.should_break = True
+        return lc
+
+    def should_continue(self):
+        """
+        Return a continuing loop controller
+
+        :return:
+        """
+
+        lc = LoopController()
+        lc.should_continue = True
+        return lc
+
+    def should_return(self, value):
+        """
+        Return a returning loop controller.
+
+        :param value:
+        :return:
+        """
+
+        lc = LoopController()
+        lc.should_return = True
+        lc.return_value = value
+        return lc
+
+
 class PluginRunner(object):
     def run_plugin(self, module, data, invocation_length):
         """

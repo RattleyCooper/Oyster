@@ -115,9 +115,9 @@ o       O o   O `Ooo.   O   OooO'  o
             self.bind_socket(attempts=attempts + 1)
         return self
 
-    def accept_connections(self):
+    def listener(self):
         """
-        Start accepting connections.
+        Start listening for connections.
 
         :return:
         """
@@ -376,7 +376,7 @@ if __name__ == '__main__':
     )
 
     # Start the thread that accepts connections.
-    connection_accepter = threading.Thread(target=server.accept_connections)
+    connection_accepter = threading.Thread(target=server.listener)
     connection_accepter.setDaemon(True)
     connection_accepter.start()
 
