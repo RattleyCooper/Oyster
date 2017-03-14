@@ -1,4 +1,4 @@
-from server import LoopController
+from common import LoopControl
 
 
 class Plugin(object):
@@ -9,19 +9,16 @@ class Plugin(object):
     def run(self, server, data):
         print('Detaching from client...')
 
-        lc = LoopController()
+        lc = LoopControl()
 
         try:
             server.connection_mgr.close()
         except (BrokenPipeError, OSError) as err_msg:
             server.connection_mgr.remove_connection(server.connection_mgr.current_connection)
             server.connection_mgr.current_connection = None
-
-            lc.should_break = True
-            return lc
+            return lc.should_break()
 
         server.connection_mgr.remove_connection(server.connection_mgr.current_connection)
         server.connection_mgr.current_connection = None
 
-        lc.should_break = True
-        return lc
+        return lc.should_break()
