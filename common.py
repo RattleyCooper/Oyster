@@ -1,5 +1,21 @@
 
 
+def safe_input(display_string):
+    """
+    Get input from user.  Should work with python 2.7 and 3.x
+
+    :param display_string:
+    :return:
+    """
+
+    try:
+        x = raw_input(display_string)
+    except NameError:
+        x = input(display_string)
+
+    return x
+
+
 class ThreadControl(object):
     def __init__(self):
         self.control_dictionary = {}

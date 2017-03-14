@@ -5,29 +5,13 @@ import socket
 from time import sleep
 import os
 from os import execv
-from common import PluginRunner, LoopController, ThreadControl
+from common import PluginRunner, LoopController, ThreadControl, safe_input
 from connection import Connection, ConnectionManager
 
 
 thread_control = {
     'ACCEPT_CONNECTIONS': True
 }
-
-
-def safe_input(display_string):
-    """
-    Get input from user.  Should work with python 2.7 and 3.x
-
-    :param display_string:
-    :return:
-    """
-
-    try:
-        x = raw_input(display_string)
-    except NameError:
-        x = input(display_string)
-
-    return x
 
 
 class Server(PluginRunner):
