@@ -158,11 +158,42 @@ on how everything works under the hood.
 
 The basic idea is that a `command`/`data` is dispatched to the `client` 
 from the `server`, and then the `client` responds with a `result` and 
-waits for another `command`. The `client` _must_ respond with _something_,
-even if it is a blank string.  A lot of commands can be implemented with 
-a client-side plugin, however in certain cases a `server` plugin, or 
-Oyster `shell` plugin would be required for more advanced functionality(
-downloading files or something similar).
+waits for another `command`. The `client` _must_ respond with _something_
+when the server sends it something, even if it is a blank string.  
+
+Example:
+
+```python
+# Server-side
+server.send_command('say hello, client')
+
+# This would be from within a plugin after the client
+# received data and was ready to respond.
+client.send_data('hello!')
+```
+
+You can also send data back to the client in chunks instead of sending 
+it all at once:
+
+```python
+# Server-side
+server.send_command('say hello, client')
+
+# This would be from within a plugin after the client
+# received data and was ready to respond.
+msg = 'hello world!'
+for letter in msg:
+    client.send_data(letter, chunks=True)
+client.terminate()
+```
+
+It's important to note that setting the `chunks` flag only tells the
+`client` not to send the termination string back to the server.
+
+A lot of commands can be implemented with a client-side plugin, however 
+in certain cases a `server` plugin, or Oyster `shell` plugin would be 
+required for more advanced functionality(downloading files or something 
+similar).
 
 A client plugin must be a python file with a `Plugin` class that has a 
 `version` attribute, an `invocation` attribute that tells it what 
@@ -210,7 +241,8 @@ server-side implementation of the `get` command.  A simpler plugin
 example can be found in the `client_plugins/SysInfo.py` file.  It runs 
 some functions to gather some basic information about the clients 
 system, then sends it to the server. Be careful implementing command 
-plugins as you can override an operating system's commands.  Look at the 
+plugins as you can override an operating system's commands.  If you do
+override an OS command and want to use it, escape it(`\cd`). Look at the 
 `ChangeDirectory` plugin in the `client_plugins` to see a good example 
 of how the `cd` command is actually implemented in python, and not using 
 the native OS command.
