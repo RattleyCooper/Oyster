@@ -146,7 +146,7 @@ o       O o   O `Ooo.   O   OooO'  o
             conn_obj.send_command('oyster set-port {}'.format(address[1]))
 
             print(
-                '\n< Listener Thread > {} ({}) connected... >\n{}'.format(
+                '\r< Listener Thread > {} ({}) connected... >\n{}'.format(
                     address[0],
                     address[1],
                     'Oyster> '
@@ -155,6 +155,8 @@ o       O o   O `Ooo.   O   OooO'  o
             )
 
         print('\n< Listener Thread > Connections no longer being accepted!')
+        print('Closing connections...')
+        self.connection_mgr.close_all_connections()
         return
 
     def set_cli(self, the_string):
