@@ -85,7 +85,7 @@ o       O o   O `Ooo.   O   OooO'  o
         try:
             self.socket = socket.socket()
         except socket.error as error_message:
-            print('Could not create socket:', error_message)
+            print('< Could not create socket:', error_message, '>')
             sys.exit()
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return self
@@ -97,20 +97,20 @@ o       O o   O `Ooo.   O   OooO'  o
         :return:
         """
 
-        print('Starting on port', self.port, end=', ')
+        print('< Starting on port', self.port, end=', ')
         try:
             # Bind & start listening.
             self.socket.bind((self.host, self.port))
             self.socket.listen(self.listen)
-            print('waiting for client connections...', end='\n\n')
+            print('waiting for client connections... >', end='\n\n')
 
         except socket.error as error_message:
-            print('Could not bind the socket:', error_message, '\n', 'Trying again...')
+            print('< Could not bind the socket:', error_message, '\n', 'Trying again... >')
             sleep(1)
 
             # Try to bind the socket 5 times before giving up.
             if attempts == self.bind_retry:
-                print('Could not bind the socket to the port after {} tries.  Aborting...'.format(self.bind_retry))
+                print('< Could not bind the socket to the port after {} tries.  Aborting... >'.format(self.bind_retry))
                 sys.exit()
             self.bind_socket(attempts=attempts + 1)
         return self
@@ -145,8 +145,12 @@ o       O o   O `Ooo.   O   OooO'  o
             conn_obj.send_command('oyster set-ip {}'.format(address[0]))
             conn_obj.send_command('oyster set-port {}'.format(address[1]))
 
+            if not thread_control['ACCEPT_CONNECTIONS']:
+                self.connection_mgr.remove_connection(conn_obj)
+                conn_obj.close()
+                return
             print(
-                '\r< Listener Thread > {} ({}) connected... >\n{}'.format(
+                '\r< [ Listener Thread ] {} ({}) connected... >\n{}'.format(
                     address[0],
                     address[1],
                     'Oyster> '
@@ -154,8 +158,8 @@ o       O o   O `Ooo.   O   OooO'  o
                 end=''
             )
 
-        print('\n< Listener Thread > Connections no longer being accepted!')
-        print('Closing connections...')
+        print('\n< [ Listener Thread ] Connections no longer being accepted! >')
+        print('< Closing connections... >')
         self.connection_mgr.close_all_connections()
         return
 
@@ -405,4 +409,4 @@ if __name__ == '__main__':
     # Handle the shutdown sequence.
     connection_accepter.join()
 
-    print('Shutdown complete!')
+    print('< Shutdown complete! >')

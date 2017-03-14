@@ -274,13 +274,13 @@ class ConnectionManager(object):
             try:
                 self.current_connection = list(self.connections.values())[int(ip)]
             except (KeyError, IndexError):
-                print('No connection for the given key/index')
+                print('< No connection for the given key/index... >')
                 return None
         else:
             try:
                 self.current_connection = self.connections[str(ip)]
             except KeyError:
-                print('No connection for the given IP address')
+                print('< No connection for the given IP address... >')
                 return None
         return self.current_connection
 
@@ -365,7 +365,7 @@ class ConnectionManager(object):
         :return:
         """
 
-        print('Closing connection - {}...'.format(ip_address))
+        print('< Closing connection - {} >'.format(ip_address))
         self.connections[ip_address].close()
         return self
 
