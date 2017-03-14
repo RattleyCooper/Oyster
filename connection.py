@@ -20,7 +20,7 @@ class Connection(object):
         :return:
         """
 
-        self.send_command('disconnect')
+        self.send_command('oyster disconnect')
         closing = True
         self.status = 'CLOSED'
         while closing:
@@ -75,7 +75,7 @@ class Connection(object):
                 self.connection.send(str.encode('~!_TERM_$~'))
         except BrokenPipeError as err_msg:
             self.status = 'CLOSED'
-            print('Client disconnected...')
+            print('< Client disconnected. >')
             self.try_close(self.connection)
             return False
         except OSError as err_msg:
@@ -84,7 +84,7 @@ class Connection(object):
             return False
 
         if file_response:
-            print('Getting file response...')
+            print('< Getting file response. >')
             return self.get_file_response(file_response)
 
         return self.get_response()
@@ -102,7 +102,7 @@ class Connection(object):
                 try:
                     data = self.connection.recv(self.recv_size)
                 except ConnectionResetError:
-                    print('Connection reset by peer.')
+                    print('< Connection reset by peer. >')
                     break
                 if len(data) < 1:
                     continue
@@ -140,7 +140,7 @@ class Connection(object):
             try:
                 data = self.connection.recv(self.recv_size)
             except ConnectionResetError:
-                print('Connection reset by peer.')
+                print('< Connection reset by peer. >')
                 break
             if len(data) < 1:
                 continue
@@ -153,7 +153,7 @@ class Connection(object):
 
         data_package = data_package[:-10]
         if echo:
-            print('Response: {}'.format(data_package))
+            print('< Response: {} >'.format(data_package))
         return data_package
 
 
@@ -274,13 +274,13 @@ class ConnectionManager(object):
             try:
                 self.current_connection = list(self.connections.values())[int(ip)]
             except (KeyError, IndexError):
-                print('< No connection for the given key/index... >')
+                print('< No connection for the given key/index. >')
                 return None
         else:
             try:
                 self.current_connection = self.connections[str(ip)]
             except KeyError:
-                print('< No connection for the given IP address... >')
+                print('< No connection for the given IP address. >')
                 return None
         return self.current_connection
 
@@ -313,7 +313,7 @@ class ConnectionManager(object):
         """
 
         if self.current_connection is None:
-            print('Run the `use` command to select a connection by ip address before sending commands.')
+            print('< Run the `use` command to select a connection by ip address before sending commands. >')
             return ''
 
         try:

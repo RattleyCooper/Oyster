@@ -102,15 +102,15 @@ o       O o   O `Ooo.   O   OooO'  o
             # Bind & start listening.
             self.socket.bind((self.host, self.port))
             self.socket.listen(self.listen)
-            print('waiting for client connections... >', end='\n\n')
+            print('waiting for client connections. >', end='\n\n')
 
         except socket.error as error_message:
-            print('< Could not bind the socket:', error_message, '\n', 'Trying again... >')
+            print('< Could not bind the socket:', error_message, '\n', 'Trying again. >')
             sleep(1)
 
             # Try to bind the socket 5 times before giving up.
             if attempts == self.bind_retry:
-                print('< Could not bind the socket to the port after {} tries.  Aborting... >'.format(self.bind_retry))
+                print('< Could not bind the socket to the port after {} tries.  Aborting. >'.format(self.bind_retry))
                 sys.exit()
             self.bind_socket(attempts=attempts + 1)
         return self
@@ -150,7 +150,7 @@ o       O o   O `Ooo.   O   OooO'  o
                 conn_obj.close()
                 return
             print(
-                '\r< [ Listener Thread ] {} ({}) connected... >\n{}'.format(
+                '\r< [ Listener Thread ] {} ({}) connected. >\n{}'.format(
                     address[0],
                     address[1],
                     'Oyster> '
@@ -159,7 +159,7 @@ o       O o   O `Ooo.   O   OooO'  o
             )
 
         print('\n< [ Listener Thread ] Connections no longer being accepted! >')
-        print('< Closing connections... >')
+        print('< Closing connections. >')
         self.connection_mgr.close_all_connections()
         return
 
