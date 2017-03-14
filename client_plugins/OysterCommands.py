@@ -28,17 +28,17 @@ class Plugin(object):
             try:
                 uuid = args[1]
             except IndexError:
-                print('No sesssion-id provided.')
+                print('< No sesssion-id provided. >')
                 client.send_data('False')
                 return
 
             if uuid == client.session_id:
                 if client.reconnect_to_session:
-                    print('Connecting to session.')
+                    print('< Connecting to session. >')
                     client.send_data('True')
                     client.session_id = uuid
                     return
-                print('Will not connect to current session')
+                print('< Will not connect to current session. >')
                 client.send_data('False')
                 return
             else:
