@@ -5,7 +5,7 @@ import socket
 from time import sleep
 import os
 from os import execv
-from common import PluginRunner, LoopController
+from common import PluginRunner, LoopController, ThreadControl
 from connection import Connection, ConnectionManager
 
 
@@ -245,24 +245,34 @@ o       O o   O `Ooo.   O   OooO'  o
             command = safe_input(input_string)
 
             # # # # # # # PROCESS PLUGINS # # # # # # #
-            plugin_ran, loop_controller = self.process_plugins(plugin_list, command)
+            plugin_ran, obj = self.process_plugins(plugin_list, command)
             if plugin_ran:
-                if isinstance(loop_controller, LoopController):
-                    if loop_controller.should_break:
-                        break
-                    if loop_controller.should_return:
-                        return loop_controller.return_value
-                    if loop_controller.should_continue:
-                        continue
-                continue
+                lc = None
+                # Set the lc variable to match the obj if we got a LoopController
+                if isinstance(obj, LoopController):
+                    lc = obj
 
-            # Reboot the target's client.py file remotely.
-            if command == 'oyster shell-reboot':
-                try:
-                    self.connection_mgr.send_command(command)
-                except BrokenPipeError as err_msg:
-                    self.connection_mgr.current_connection = None
-                    break
+                # If we got a ThreadControl as obj, set the thread_control
+                # keys/values and set the lc variable to equal the obj's
+                # loop_control attribute.
+                if isinstance(obj, ThreadControl):
+                    try:
+                        iterator = obj.control_dictionary.iteritems()
+                    except AttributeError:
+                        iterator = obj.control_dictionary.items()
+                    for k, v in iterator:
+                        thread_control[k] = v
+                    lc = obj.loop_control
+
+                # If the lc variable is a LoopController, do the normal
+                # loop controlling checks.
+                if isinstance(lc, LoopController):
+                    if lc.should_break:
+                        break
+                    if lc.should_return:
+                        return obj.return_value
+                    if lc.should_continue:
+                        continue
                 continue
 
             # Send command through.
@@ -288,28 +298,35 @@ o       O o   O `Ooo.   O   OooO'  o
             command = safe_input('\rOyster> ')
 
             # # # # # # # PROCESS PLUGINS # # # # # # #
-            plugin_ran, loop_controller = self.process_plugins(plugin_list, command)
+            plugin_ran, obj = self.process_plugins(plugin_list, command)
             if plugin_ran:
-                if isinstance(loop_controller, LoopController):
-                    if loop_controller.should_break:
+                lc = None
+                # Set the lc variable to match the obj if we got a LoopController
+                if isinstance(obj, LoopController):
+                    lc = obj
+
+                # If we got a ThreadControl as obj, set the thread_control
+                # keys/values and set the lc variable to equal the obj's
+                # loop_control attribute.
+                if isinstance(obj, ThreadControl):
+                    try:
+                        iterator = obj.control_dictionary.iteritems()
+                    except AttributeError:
+                        iterator = obj.control_dictionary.items()
+                    for k, v in iterator:
+                        thread_control[k] = v
+                    lc = obj.loop_control
+
+                # If the lc variable is a LoopController, do the normal
+                # loop controlling checks.
+                if isinstance(lc, LoopController):
+                    if lc.should_break:
                         break
-                    if loop_controller.should_return:
-                        return loop_controller.return_value
-                    if loop_controller.should_continue:
+                    if lc.should_return:
+                        return obj.return_value
+                    if lc.should_continue:
                         continue
                 continue
-
-            # Quit the server.py app down.
-            if command == 'quit' or command == 'exit' or command == 'shutdown':
-                self.connection_mgr.close_all_connections()
-                thread_control['ACCEPT_CONNECTIONS'] = False
-                return False
-
-            # Reboot self.
-            if command == 'reboot':
-                print('Rebooting...')
-                self.reboot_self()
-                return
 
             if len(command) > 0:
                 if self.connection_mgr.current_connection is not None:

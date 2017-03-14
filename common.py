@@ -1,5 +1,11 @@
 
 
+class ThreadControl(object):
+    def __init__(self):
+        self.control_dictionary = {}
+        self.loop_control = None
+
+
 class LoopController(object):
     def __init__(self):
         self.should_break = False
