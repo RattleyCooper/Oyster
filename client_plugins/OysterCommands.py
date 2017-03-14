@@ -83,6 +83,7 @@ class Plugin(object):
             client.send_data('pong\n')
             return
 
+        # Cover quit and exit commands.
         if args[0] == 'quit' or args[0] == 'exit':
             client.send_data('confirmed')
             sleep(1)
