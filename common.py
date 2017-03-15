@@ -46,7 +46,8 @@ class LoopControl(object):
         return lc.should_break()
     """
 
-    def should_break(self):
+    @staticmethod
+    def should_break():
         """
         Return a breaking loop controller.
 
@@ -57,7 +58,8 @@ class LoopControl(object):
         lc.should_break = True
         return lc
 
-    def should_continue(self):
+    @staticmethod
+    def should_continue():
         """
         Return a continuing loop controller
 
@@ -68,7 +70,8 @@ class LoopControl(object):
         lc.should_continue = True
         return lc
 
-    def should_return(self, value):
+    @staticmethod
+    def should_return(value):
         """
         Return a returning loop controller.
 
@@ -108,13 +111,14 @@ class PluginRunner(object):
         plugin_ran = True
         return plugin_ran, result
 
-    def process_plugins(self, plugin_list, data):
+    def process_plugins(self, plugin_list, data, help_mode_on=False):
         """
         Process plugins to see if the data should be intercepted.
 
         :param self:
         :param plugin_list:
         :param data:
+        :param help_mode_on:
         :return:
         """
 
@@ -134,11 +138,15 @@ class PluginRunner(object):
                     for invocation in invocations:
                         invocation_length = len(invocation)
                         if data[:invocation_length] == invocation:
+                            if help_mode_on:
+                                help(module.Plugin)
                             results = self.run_plugin(module, data, invocation_length)
                             break
 
                 elif data[:invocation_length] == module.Plugin.invocation:
                     if module.Plugin.enabled or (hasattr(module.Plugin, 'required') and module.Plugin.required):
+                        if help_mode_on:
+                            help(module.Plugin)
                         results = self.run_plugin(module, data, invocation_length)
 
                 if not results:

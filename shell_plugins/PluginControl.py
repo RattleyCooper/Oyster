@@ -19,8 +19,8 @@ class Plugin(object):
 
         plugins -r          -   Reload the installed plugins.
         plugins -l          -   List the installed plugins.
-        plugins -ls         -   List the installed server plugins.
-        plugins -lsh        -   List the installed shell plugins.
+        plugins -lo         -   List the installed outgoing plugins.
+        plugins -ls         -   List the installed shell plugins.
 
     Example:
 
@@ -48,9 +48,9 @@ class Plugin(object):
 
         if args[0] == '-l':
             print(Plugin.list_plugins(server))
+        if args[0] == '-lo':
+            print(Plugin.list_outgoing_plugins(server))
         if args[0] == '-ls':
-            print(Plugin.list_server_plugins(server))
-        if args[0] == '-lsh':
             print(Plugin.list_shell_plugins(server))
         if args[0] == '-r':
             Plugin.reload_plugins(server)
@@ -66,12 +66,12 @@ class Plugin(object):
 
         print('< Reloading Plugins. >')
         shell_plugins = server.get_shell_plugins()
-        server_plugins = server.get_server_plugins()
+        outgoing_plugins = server.get_outgoing_plugins()
 
-        server.server_plugins = server_plugins
+        server.outgoing_plugins = outgoing_plugins
         server.shell_plugins = shell_plugins
 
-        plugins = server_plugins + shell_plugins
+        plugins = outgoing_plugins + shell_plugins
 
         for plugin in plugins:
             reload(plugin)
@@ -84,6 +84,7 @@ class Plugin(object):
         Get a list of strings for enabled or disabled plugins.
 
         :param plugins:
+        :param enabled:
         :return list:
         """
 
@@ -93,7 +94,7 @@ class Plugin(object):
                 continue
             plugin_string = '   [{}]   < {} {} >'.format(
                     'enabled' if enabled else 'disabled',
-                    plugin.__name__.replace('server_plugins.', ''),
+                    plugin.__name__.replace('outgoing_plugins.', ''),
                     plugin.Plugin.version
                 )
             plugin_string += '\n     invocation: {}'.format(
@@ -125,20 +126,20 @@ class Plugin(object):
         return Plugin.plugins_strings(plugins, enabled=False)
 
     @staticmethod
-    def list_server_plugins(server):
+    def list_outgoing_plugins(server):
         """
-        Get a string listing the server plugins installed on the system
+        Get a string listing the outgoing plugins installed on the system
 
         :param server:
         :return str output:
         """
 
-        plugins = server.get_server_plugins()
+        plugins = server.get_outgoing_plugins()
 
         enabled = Plugin.enabled_plugins_strings(plugins)
         disabled = Plugin.disabled_plugins_strings(plugins)
 
-        output = ['\n< Server Plugins >'] + enabled + disabled + ['< /Server Plugins >']
+        output = ['\n< Outgoing Plugins >'] + enabled + disabled + ['< /Outgoing Plugins >']
         output = '\n\n'.join(output) + '\n'
 
         return output
@@ -171,9 +172,9 @@ class Plugin(object):
         :return:
         """
 
-        return Plugin.list_server_plugins(server) + Plugin.list_shell_plugins(server)
+        return Plugin.list_outgoing_plugins(server) + Plugin.list_shell_plugins(server)
 
 
 if __name__ == '__main__':
-    print(help(Plugin))
+    help(Plugin)
 

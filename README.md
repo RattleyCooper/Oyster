@@ -76,9 +76,9 @@ plugins -r                  -   Reload all plugins.
 
 plugins -l                  -   List all plugins.
 
-plugins -ls                 -   List all server plugins.
+plugins -lo                 -   List all outgoing plugins.
 
-plugins -lsh                -   List all oyster shell plugins
+plugins -ls                 -   List all oyster shell plugins
                                 
 quit                        -   Shut everything down.
 
@@ -236,7 +236,7 @@ to all of the connected clients at once. The `Server` uses the
 Documentation on the `ConnectionManager` will be coming soon.
 
 The `client_plugins/Get.py` file is what handles the `get` command sent 
-from the server.  The `server_plugins/Get.py` file handles the 
+from the server.  The `outgoing_plugins/Get.py` file handles the 
 server-side implementation of the `get` command.  A simpler plugin 
 example can be found in the `client_plugins/SysInfo.py` file.  It runs 
 some functions to gather some basic information about the clients 

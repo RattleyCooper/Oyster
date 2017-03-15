@@ -41,8 +41,10 @@ o       O o   O `Ooo.   O   OooO'  o
         self.socket = None
         self.reboot = False
 
+        self.help_mode = False
+
         self.shell_plugins = []
-        self.server_plugins = []
+        self.outgoing_plugins = []
 
         self.connection_mgr = ConnectionManager()
         self.create_socket()
@@ -161,16 +163,16 @@ o       O o   O `Ooo.   O   OooO'  o
         print(the_string, end='')
         return self
 
-    def get_server_plugins(self):
+    def get_outgoing_plugins(self):
         """
-        Dynamically import any server_plugins in the `server_plugins` package.
+        Dynamically import any outgoing_plugins in the `outgoing_plugins` package.
         :return:
         """
 
         plugin_list = []
-        # Get the filepath of the server plugins based on the filepath of the this file.
-        fp = __file__.replace(__file__.split('/')[-1], '') + 'server_plugins'
-        # Get the names of the modules within the server_plugins folder.
+        # Get the filepath of the outgoing plugins based on the filepath of the this file.
+        fp = __file__.replace(__file__.split('/')[-1], '') + 'outgoing_plugins'
+        # Get the names of the modules within the outgoing_plugins folder.
         module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
         hidden_files = [n for n in os.listdir(fp) if n[0] == '.']
         module_names = [n for n in module_names if n not in hidden_files]
@@ -182,7 +184,7 @@ o       O o   O `Ooo.   O   OooO'  o
 
         for module_name in module_names:
             # Import the module by name
-            module = __import__('server_plugins.' + module_name, fromlist=[''])
+            module = __import__('outgoing_plugins.' + module_name, fromlist=[''])
             # Add the module to the plugin list
             plugin_list.append(module)
 
@@ -219,7 +221,7 @@ o       O o   O `Ooo.   O   OooO'  o
         :return:
         """
 
-        self.server_plugins = self.server_plugins if self.server_plugins else self.get_server_plugins()
+        self.outgoing_plugins = self.outgoing_plugins if self.outgoing_plugins else self.get_outgoing_plugins()
         self.connection_mgr.send_command('oyster getcwd')
         while True:
             if self.connection_mgr.current_connection is None:
@@ -237,7 +239,7 @@ o       O o   O `Ooo.   O   OooO'  o
             command = safe_input(input_string)
 
             # # # # # # # PROCESS PLUGINS # # # # # # #
-            plugin_ran, obj = self.process_plugins(self.server_plugins, command)
+            plugin_ran, obj = self.process_plugins(self.outgoing_plugins, command, help_mode_on=self.help_mode)
             if plugin_ran:
                 lc = None
                 # Set the lc variable to match the obj if we got a LoopController
@@ -288,7 +290,7 @@ o       O o   O `Ooo.   O   OooO'  o
             command = safe_input('\rOyster> ')
 
             # # # # # # # PROCESS PLUGINS # # # # # # #
-            plugin_ran, obj = self.process_plugins(self.shell_plugins, command)
+            plugin_ran, obj = self.process_plugins(self.shell_plugins, command, help_mode_on=self.help_mode)
             if plugin_ran:
                 lc = None
                 # Set the lc variable to match the obj if we got a LoopController
@@ -387,12 +389,12 @@ if __name__ == '__main__':
         # Load plugins
         print('')
         shell_plugins = server.get_shell_plugins()
-        server_plugins = server.get_server_plugins()
+        outgoing_plugins = server.get_outgoing_plugins()
 
         server.shell_plugins = shell_plugins
-        server.server_plugins = server_plugins
+        server.outgoing_plugins = outgoing_plugins
 
-        plugins_total = len(shell_plugins) + len(server_plugins)
+        plugins_total = len(shell_plugins) + len(outgoing_plugins)
         print('< Loaded {} plugins. >'.format(plugins_total))
 
         # Start the Oyster Shell.

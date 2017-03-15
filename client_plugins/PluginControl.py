@@ -81,7 +81,7 @@ class Plugin(object):
                 continue
             plugin_string = '   [{}]   < {} {} >'.format(
                     'enabled' if enabled else 'disabled',
-                    plugin.__name__.replace('server_plugins.', ''),
+                    plugin.__name__.replace('outgoing_plugins.', ''),
                     plugin.Plugin.version
                 )
             plugin_string += '\n     invocation: {}'.format(

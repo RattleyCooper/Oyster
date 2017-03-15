@@ -9,7 +9,6 @@ class Plugin(object):
     
     def run(self, server, data):
         args = shlex.split(data)
-        lc = LoopControl()
         
         if not args:
             return
@@ -22,5 +21,5 @@ class Plugin(object):
             except BrokenPipeError as err_msg:
                 server.connection_mgr.remove_connection(server.connection_mgr.current_connection)
                 server.connection_mgr.current_connection = None
-                return lc.should_break()
-            return lc.should_break()
+                return LoopControl.should_break()
+            return LoopControl.should_break()

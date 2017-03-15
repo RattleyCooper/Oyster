@@ -17,7 +17,6 @@ class Plugin(object):
 
     def run(self, client, data):
         args = shlex.split(data)
-        lc = LoopControl()
 
         if not args:
             client.server_print('Oyster requires arguments to run.\n')
@@ -71,7 +70,7 @@ class Plugin(object):
         if args[0] == 'shell-reboot':
             client.send_data('confirmed')
             client.sock.close()
-            return lc.should_break()
+            return LoopControl.should_break()
 
         # Get the current working directory.
         if args[0] == 'getcwd':
@@ -87,8 +86,7 @@ class Plugin(object):
         if args[0] == 'quit' or args[0] == 'exit':
             client.send_data('confirmed')
             sleep(1)
-            lc.should_break = True
-            return lc
+            return LoopControl.should_break()
 
         # Make the `client.py` script remove the `Oyster` folder and its contents.
         if args[0] == 'self-destruct':
