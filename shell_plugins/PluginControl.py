@@ -52,8 +52,9 @@ class Plugin(object):
         plugins = server.get_server_plugins()
 
         enabled = [
-            '   [enabled]    {} - {}'.format(
+            '   [enabled]    {} {} - {}'.format(
                 pn.__name__.replace('server_plugins.', ''),
+                pn.Plugin.version,
                 pn.Plugin.invocation
             )
             for pn in plugins
@@ -61,8 +62,9 @@ class Plugin(object):
             ]
 
         disabled = [
-            '   [disabled]   {} - {}'.format(
+            '   [disabled]   {} {} - {}'.format(
                 pn.__name__.replace('server_plugins.', ''),
+                pn.Plugin.version,
                 pn.Plugin.invocation
             )
             for pn in plugins
