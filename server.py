@@ -317,10 +317,6 @@ o       O o   O `Ooo.   O   OooO'  o
                     if lc.should_continue:
                         continue
                 continue
-
-            if len(command) > 0:
-                if self.connection_mgr.current_connection is not None:
-                    print(self.connection_mgr.send_command(command))
         return
 
     def reboot_self(self):
