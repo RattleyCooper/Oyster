@@ -10,19 +10,21 @@ class Plugin(object):
     invocation = 'plugins'
     enabled = True
 
-    def run(self, server, data):
+    @staticmethod
+    def run(server, data):
         args = shlex.split(data)
 
         if args[0] == '-l':
-            self.list_plugins(server)
+            Plugin.list_plugins(server)
         if args[0] == '-ls':
-            self.list_server_plugins(server)
+            Plugin.list_server_plugins(server)
         if args[0] == '-lsh':
-            self.list_shell_plugins(server)
+            Plugin.list_shell_plugins(server)
         if args[0] == '-r':
-            self.reload_plugins(server)
+            Plugin.reload_plugins(server)
 
-    def reload_plugins(self, server):
+    @staticmethod
+    def reload_plugins(server):
         """
         Reload all of the server-side plugins
 
@@ -41,17 +43,9 @@ class Plugin(object):
         print('Plugins Reloaded...')
         return
 
-    def list_server_plugins(self, server):
-        """
-        List server plugins installed on the system
-
-        :param server:
-        :return:
-        """
-
-        plugins = server.get_server_plugins()
-
-        enabled = [
+    @staticmethod
+    def enabled_plugins_string(plugins):
+        return [
             '   [enabled]    {} {} - {}'.format(
                 pn.__name__.replace('server_plugins.', ''),
                 pn.Plugin.version,
@@ -61,7 +55,9 @@ class Plugin(object):
             if pn.Plugin.enabled
             ]
 
-        disabled = [
+    @staticmethod
+    def disabled_plugins_string(plugins):
+        return [
             '   [disabled]   {} {} - {}'.format(
                 pn.__name__.replace('server_plugins.', ''),
                 pn.Plugin.version,
@@ -71,11 +67,26 @@ class Plugin(object):
             if not pn.Plugin.enabled
             ]
 
+    @staticmethod
+    def list_server_plugins(server):
+        """
+        List server plugins installed on the system
+
+        :param server:
+        :return:
+        """
+
+        plugins = server.get_server_plugins()
+
+        enabled = Plugin.enabled_plugins_string(plugins)
+        disabled = Plugin.disabled_plugins_string(plugins)
+
         output = ['\n< Server Plugins >'] + enabled + disabled + ['< /Server Plugins >']
         print('\n\n'.join(output) + '\n')
         return
 
-    def list_shell_plugins(self, server):
+    @staticmethod
+    def list_shell_plugins(server):
         """
         List the installed shell plugins
 
@@ -85,30 +96,16 @@ class Plugin(object):
 
         plugins = server.get_shell_plugins()
 
-        enabled = [
-            '   [enabled]    {} - {}'.format(
-                pn.__name__.replace('shell_plugins.', ''),
-                pn.Plugin.invocation
-            )
-            for pn in plugins
-            if pn.Plugin.enabled
-        ]
-
-        disabled = [
-            '   [disabled]   {} - {}'.format(
-                pn.__name__.replace('shell_plugins.', ''),
-                pn.Plugin.invocation
-            )
-            for pn in plugins
-            if not pn.Plugin.enabled
-        ]
+        enabled = Plugin.enabled_plugins_string(plugins)
+        disabled = Plugin.disabled_plugins_string(plugins)
 
         output = ['\n< Shell Plugins >'] + enabled + disabled + ['< /Shell Plugins >']
         output_str = '\n\n'.join(output) + '\n'
         print(output_str)
         return
 
-    def list_plugins(self, server):
+    @staticmethod
+    def list_plugins(server):
         """
         List all plugins installed server-side
 
@@ -116,7 +113,7 @@ class Plugin(object):
         :return:
         """
 
-        self.list_shell_plugins(server)
-        self.list_server_plugins(server)
+        Plugin.list_server_plugins(server)
+        Plugin.list_shell_plugins(server)
         return
 
