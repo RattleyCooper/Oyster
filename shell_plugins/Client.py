@@ -4,6 +4,28 @@ from shutil import copy
 
 
 class Plugin(object):
+    """
+    Client v1.0
+
+    Commands for managing clients.
+
+    Invocation:
+
+        client
+
+    Commands:
+
+        client -b {command}             -   Send a {command} to every connected client.
+        client -d                       -   Create a "dist" folder with all of the client
+                                            related files and folders.
+
+    Example:
+
+        Oyster> client -b stat ~/
+        16777220 326060 drwxr-xr-x 45...
+        Oyster>
+    """
+
     version = 'v1.0'
     invocation = 'client '
     enabled = True
@@ -59,7 +81,7 @@ class Plugin(object):
         hidden_files = [n for n in os.listdir(client_plugins_filepath) if n[0] == '.']
         client_plugin_filenames = [n for n in client_plugin_filenames if n not in hidden_files]
 
-        print('\r< Creating client distribution package... >')
+        print('\r< Creating client distribution package. >')
         try:
             os.mkdir(oyster_fp + 'dist')
             os.mkdir(oyster_fp + 'dist/client_plugins')
@@ -76,7 +98,7 @@ class Plugin(object):
         copy(oyster_fp + 'client.py', oyster_fp + 'dist/client.py')
         copy(oyster_fp + 'update.py', oyster_fp + 'dist/update.py')
 
-        print('\r< Finished... >')
+        print('\r< Finished. >')
         return
 
 
