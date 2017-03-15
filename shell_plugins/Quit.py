@@ -3,6 +3,28 @@ from common import LoopControl
 
 
 class Plugin(object):
+    """
+    Quit v1.0
+
+    Shutdown the server.py script.
+
+    Invocations:
+
+        quit
+        exit
+        shutdown
+
+    Commands:
+
+        quit/exit/shutdown      -   Any of the 3 commands will shutdown the
+                                    server.py script
+
+    Example:
+
+        Oyster> quit
+        < Shutdown complete! >
+    """
+
     version = 'v1.0'
     invocation = ['quit', 'exit', 'shutdown']
     enabled = True

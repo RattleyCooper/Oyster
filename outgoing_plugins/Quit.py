@@ -2,6 +2,25 @@ from common import LoopControl
 
 
 class Plugin(object):
+    """
+    Quit v1.0
+
+    Quit out of a client shell.
+
+    Invocation:
+
+        quit
+        exit
+
+    Commands:
+
+        quit/exit           -   Shut down a client shell.
+
+    Example:
+
+        Oyster> quit
+    """
+
     version = 'v1.0'
     invocation = ['quit', 'exit']
     enabled = True

@@ -21,7 +21,26 @@ def safe_input(display_string):
 
 class Plugin(object):
     """
-    Upload a file to the currently connected client
+    Upload v1.0
+
+    Upload a file to the currently connected client.
+
+    Invocation:
+
+        upload
+
+    Commands:
+
+        The Upload plugin doesn't follow normal conventions.  A filepath must be sent to the server,
+        then any data after that will be considered to be the file being uploaded.
+
+        upload filepath {filepath}     -   List all connections in the connection manager.
+
+    Example:
+
+        Oyster> list
+        -------------- Clients --------------
+        [0]   127.0.0.1   63490
     """
 
     version = 'v1.0'

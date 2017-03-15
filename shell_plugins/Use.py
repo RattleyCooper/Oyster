@@ -2,7 +2,26 @@
 
 class Plugin(object):
     """
-    Plugin for handling the `use` command.
+    Use v1.0
+
+    Start a client shell for the given connection.
+
+    Invocation:
+
+        use
+
+    Commands:
+
+        use {index  }       -   Use the given connection by {index}.
+                                Get a list of {index}es using the
+                                `list` command.
+
+        use {ip address}    -   Use the given connection by {ip address}.
+
+    Example:
+
+        Oyster> use 0
+        <127.0.0.1> /Users/user/Oyster>
     """
 
     version = 'v1.0'
