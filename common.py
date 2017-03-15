@@ -95,13 +95,16 @@ class PluginRunner(object):
         """
 
         try:
-            plugin = module.Plugin()
+            plugin = module.Plugin
         except AttributeError:
             return False
 
         # Remove the invocation command from the rest of the data.
         command = data[invocation_length:]
-        result = plugin.run(self, command)
+        try:
+            result = plugin.run(self, command)
+        except TypeError:
+            result = plugin().run(self, command)
         plugin_ran = True
         return plugin_ran, result
 
