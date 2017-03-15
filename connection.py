@@ -103,6 +103,7 @@ class Connection(object):
                     data = self.connection.recv(self.recv_size)
                 except ConnectionResetError:
                     print('< Connection reset by peer. >')
+                    self.status = 'CLOSED'
                     break
                 if len(data) < 1:
                     continue
@@ -141,6 +142,7 @@ class Connection(object):
                 data = self.connection.recv(self.recv_size)
             except ConnectionResetError:
                 print('< Connection reset by peer. >')
+                self.status = 'CLOSED'
                 break
             if len(data) < 1:
                 continue
@@ -293,9 +295,9 @@ class ConnectionManager(object):
         """
 
         ip = False
-        for ip, conn in self.connections.items():
+        for _ip, conn in self.connections.items():
             if conn == connection:
-                ip = ip
+                ip = _ip
                 break
         if ip:
             # print('< Removing connection - {} >'.format(ip))
@@ -311,6 +313,12 @@ class ConnectionManager(object):
         :param encode:
         :return:
         """
+
+        if self.current_connection.status == 'CLOSED':
+            self.close_connection(self.current_connection.ip)
+            self.remove_connection(self.current_connection)
+            self.current_connection = None
+            return ''
 
         if self.current_connection is None:
             print('< Run the `use` command to select a connection by ip address before sending commands. >')
@@ -338,8 +346,15 @@ class ConnectionManager(object):
 
         response = ''
         for ip, connection in self.connections.items():
+            self.current_connection = connection
+            if self.current_connection.status == 'CLOSED':
+                self.close_connection(self.current_connection.ip)
+                self.remove_connection(self.current_connection)
+                self.current_connection = None
+                continue
             response += connection.send_command(command)
 
+        self.current_connection = None
         if echo:
             print(response)
         return response
