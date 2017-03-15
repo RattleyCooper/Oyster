@@ -163,6 +163,14 @@ o       O o   O `Ooo.   O   OooO'  o
         print(the_string, end='')
         return self
 
+    @staticmethod
+    def list_remove(_list, item):
+        try:
+            _list.remove(item)
+            return True
+        except ValueError:
+            return False
+
     def get_outgoing_plugins(self):
         """
         Dynamically import any outgoing_plugins in the `outgoing_plugins` package.
@@ -177,10 +185,8 @@ o       O o   O `Ooo.   O   OooO'  o
         hidden_files = [n for n in os.listdir(fp) if n[0] == '.']
         module_names = [n for n in module_names if n not in hidden_files]
 
-        try:
-            module_names.remove('__pycache__')
-        except ValueError:
-            pass
+        Server.list_remove(module_names, '__pycache__')
+        Server.list_remove(module_names, '.DS_Store')
 
         for module_name in module_names:
             # Import the module by name
@@ -201,10 +207,9 @@ o       O o   O `Ooo.   O   OooO'  o
         fp = __file__.replace(__file__.split('/')[-1], '') + 'shell_plugins'
         # Get the names of the modules within the shell_plugins folder.
         module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
-        try:
-            module_names.remove('__pycache__')
-        except ValueError:
-            pass
+
+        Server.list_remove(module_names, '__pycache__')
+        Server.list_remove(module_names, '.DS_Store')
 
         for module_name in module_names:
             # Import the module by name
