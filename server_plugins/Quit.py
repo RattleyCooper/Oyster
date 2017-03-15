@@ -2,7 +2,7 @@ from common import LoopControl
 
 
 class Plugin(object):
-    version = 'v1.'
+    version = 'v1.0'
     invocation = ['quit', 'exit']
     enabled = True
 
