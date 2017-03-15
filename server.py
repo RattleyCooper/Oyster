@@ -41,6 +41,9 @@ o       O o   O `Ooo.   O   OooO'  o
         self.socket = None
         self.reboot = False
 
+        self.shell_plugins = []
+        self.server_plugins = []
+
         self.connection_mgr = ConnectionManager()
         self.create_socket()
         self.bind_socket()
@@ -86,7 +89,7 @@ o       O o   O `Ooo.   O   OooO'  o
             # Bind & start listening.
             self.socket.bind((self.host, self.port))
             self.socket.listen(self.listen)
-            print('waiting for client connections. >', end='\n\n')
+            print('waiting for client connections. >')
 
         except socket.error as error_message:
             print('< Could not bind the socket:', error_message, '\n', 'Trying again. >')
@@ -216,8 +219,7 @@ o       O o   O `Ooo.   O   OooO'  o
         :return:
         """
 
-        plugin_list = self.get_server_plugins()
-
+        self.server_plugins = self.server_plugins if self.server_plugins else self.get_server_plugins()
         self.connection_mgr.send_command('oyster getcwd')
         while True:
             if self.connection_mgr.current_connection is None:
@@ -235,7 +237,7 @@ o       O o   O `Ooo.   O   OooO'  o
             command = safe_input(input_string)
 
             # # # # # # # PROCESS PLUGINS # # # # # # #
-            plugin_ran, obj = self.process_plugins(plugin_list, command)
+            plugin_ran, obj = self.process_plugins(self.server_plugins, command)
             if plugin_ran:
                 lc = None
                 # Set the lc variable to match the obj if we got a LoopController
@@ -281,14 +283,12 @@ o       O o   O `Ooo.   O   OooO'  o
         :return:
         """
 
-        plugin_list = self.get_shell_plugins()
-
-        sleep(1)
+        self.shell_plugins = self.shell_plugins if self.shell_plugins else self.get_shell_plugins()
         while True:
             command = safe_input('\rOyster> ')
 
             # # # # # # # PROCESS PLUGINS # # # # # # #
-            plugin_ran, obj = self.process_plugins(plugin_list, command)
+            plugin_ran, obj = self.process_plugins(self.shell_plugins, command)
             if plugin_ran:
                 lc = None
                 # Set the lc variable to match the obj if we got a LoopController
@@ -333,60 +333,75 @@ o       O o   O `Ooo.   O   OooO'  o
 
 
 if __name__ == '__main__':
-    # Set some default values.
-    the_host = ''
-    the_port = 6667
-    the_recv_size = 1024
-    the_listen = 10
-    the_bind_retry = 5
+    def main():
+        # Set some default values.
+        the_host = ''
+        the_port = 6667
+        the_recv_size = 1024
+        the_listen = 10
+        the_bind_retry = 5
 
-    def check_cli_arg(arg):
-        """
-        Check command line argument and manipulate the variable
-        that it controls if it matches.
+        def check_cli_arg(arg):
+            """
+            Check command line argument and manipulate the variable
+            that it controls if it matches.
 
-        :param arg:
-        :return:
-        """
+            :param arg:
+            :return:
+            """
 
-        global the_host
-        global the_port
-        global the_recv_size
-        global the_listen
-        global the_bind_retry
+            global the_host
+            global the_port
+            global the_recv_size
+            global the_listen
+            global the_bind_retry
 
-        if 'host=' in arg:
-            the_host = arg.split('=')[1]
-        elif 'port=' in arg:
-            the_port = int(arg.split('=')[1])
-        elif 'recv_size=' in arg:
-            the_recv_size = int(arg.split('=')[1])
-        elif 'listen=' in arg:
-            the_listen = int(arg.split('=')[1])
-        elif 'bind_retry=' in arg:
-            the_bind_retry = int(arg.split('=')[1])
+            if 'host=' in arg:
+                the_host = arg.split('=')[1]
+            elif 'port=' in arg:
+                the_port = int(arg.split('=')[1])
+            elif 'recv_size=' in arg:
+                the_recv_size = int(arg.split('=')[1])
+            elif 'listen=' in arg:
+                the_listen = int(arg.split('=')[1])
+            elif 'bind_retry=' in arg:
+                the_bind_retry = int(arg.split('=')[1])
 
-    # Check all the command line arguments
-    for argument in sys.argv[1:]:
-        check_cli_arg(argument)
+        # Check all the command line arguments
+        for argument in sys.argv[1:]:
+            check_cli_arg(argument)
 
-    server = Server(
-        host=the_host,
-        port=the_port,
-        recv_size=the_recv_size,
-        listen=the_listen,
-        bind_retry=the_bind_retry,
-    )
+        server = Server(
+            host=the_host,
+            port=the_port,
+            recv_size=the_recv_size,
+            listen=the_listen,
+            bind_retry=the_bind_retry,
+        )
 
-    # Start the thread that accepts connections.
-    connection_accepter = threading.Thread(target=server.listener)
-    connection_accepter.setDaemon(True)
-    connection_accepter.start()
+        # Start the thread that accepts connections.
+        connection_accepter = threading.Thread(target=server.listener)
+        connection_accepter.setDaemon(True)
+        connection_accepter.start()
 
-    # Start the Oyster Shell.
-    server.open_oyster()
+        # Load plugins
+        print('')
+        shell_plugins = server.get_shell_plugins()
+        server_plugins = server.get_server_plugins()
 
-    # Handle the shutdown sequence.
-    connection_accepter.join()
+        server.shell_plugins = shell_plugins
+        server.server_plugins = server_plugins
 
-    print('< Shutdown complete! >')
+        plugins_total = len(shell_plugins) + len(server_plugins)
+        print('< Loaded {} plugins. >'.format(plugins_total))
+
+        # Start the Oyster Shell.
+        server.open_oyster()
+
+        # Handle the shutdown sequence.
+        connection_accepter.join()
+
+        print('< Shutdown complete! >')
+
+    main()
+
