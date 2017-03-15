@@ -224,7 +224,7 @@ class ConnectionManager(object):
         :return:
         """
 
-        del self.connections[key]
+        self.connections.pop(key)
 
     def __str__(self):
         """
@@ -301,7 +301,7 @@ class ConnectionManager(object):
                 break
         if ip:
             # print('< Removing connection - {} >'.format(ip))
-            del self.connections[ip]
+            self.connections.pop(ip)
         return self
 
     def send_command(self, command, echo=False, encode=True, file_response=False):
