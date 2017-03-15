@@ -15,6 +15,19 @@ class Plugin(object):
             print('Help doc coming soon.')
             return
 
+        # Send the command given after the -a flag to all connected clients.
+        if args[0] == '-a':
+            # Send command to all clients
+            args = shlex.split(data, posix=False)
+            try:
+                command = ' '.join(args[1:])
+                response = server.connection_mgr.send_commands(command)
+            except IndexError:
+                print('< You must include a command to send to the clients. >')
+                return
+            print(response, end='')
+            return response
+
         if args[0] == '-d':
             """
             Copy the client-specific files into the "dist" folder.
