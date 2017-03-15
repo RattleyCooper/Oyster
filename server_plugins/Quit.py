@@ -7,7 +7,7 @@ class Plugin(object):
     enabled = True
 
     def run(self, server, data):
-        print('< Detaching from client... >')
+        # print('< Detaching from client... >')
 
         lc = LoopControl()
 

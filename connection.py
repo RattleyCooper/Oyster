@@ -298,7 +298,7 @@ class ConnectionManager(object):
                 ip = ip
                 break
         if ip:
-            print('< Removing connection: {} >'.format(ip))
+            # print('< Removing connection - {} >'.format(ip))
             del self.connections[ip]
         return self
 
@@ -365,7 +365,7 @@ class ConnectionManager(object):
         :return:
         """
 
-        print('< Closing connection - {} >'.format(ip_address))
+        # print('< Closing connection - {} >'.format(ip_address))
         self.connections[ip_address].close()
         return self
 
