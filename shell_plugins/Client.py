@@ -4,7 +4,7 @@ from shutil import copy
 
 
 class Plugin(object):
-    version = 'v0.1'
+    version = 'v1.0'
     invocation = 'client '
     enabled = True
 
