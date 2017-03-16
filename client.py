@@ -299,38 +299,41 @@ class Client(PluginRunner):
 
 
 if __name__ == '__main__':
-    the_host = ''
-    the_port = 6667
-    the_recv_size = 1024
-    the_session_id = ''
+    def main():
+        the_host = ''
+        the_port = 6667
+        the_recv_size = 1024
+        the_session_id = ''
 
-    def check_cli_arg(arg):
-        global the_host
-        global the_port
-        global the_recv_size
-        global the_session_id
+        def check_cli_arg(arg):
+            global the_host
+            global the_port
+            global the_recv_size
+            global the_session_id
 
-        if 'host=' in arg:
-            the_host = arg.split('=')[1]
-        elif 'port=' in arg:
-            the_port = int(arg.split('=')[1])
-        elif 'recv_size=' in arg:
-            the_recv_size = int(arg.split('=')[1])
-        elif 'session_id=' in arg:
-            the_session_id = arg.split('=')[1].strip()
+            if 'host=' in arg:
+                the_host = arg.split('=')[1]
+            elif 'port=' in arg:
+                the_port = int(arg.split('=')[1])
+            elif 'recv_size=' in arg:
+                the_recv_size = int(arg.split('=')[1])
+            elif 'session_id=' in arg:
+                the_session_id = arg.split('=')[1].strip()
 
-    for argument in sys.argv[1:]:
-        check_cli_arg(argument)
+        for argument in sys.argv[1:]:
+            check_cli_arg(argument)
 
-    # Instantiate the client.
-    client = Client(
-        host=the_host,
-        port=the_port,
-        recv_size=the_recv_size,
-        session_id=the_session_id
-    )
+        # Instantiate the client.
+        client = Client(
+            host=the_host,
+            port=the_port,
+            recv_size=the_recv_size,
+            session_id=the_session_id
+        )
 
-    client.main()
-    client.reboot_self()
-    sys.exit()
+        client.main()
+        client.reboot_self()
+        sys.exit()
+
+    main()
 
