@@ -16,12 +16,6 @@ def safe_input(display_string):
     return x
 
 
-class ThreadControl(object):
-    def __init__(self):
-        self.control_dictionary = {}
-        self.loop_control = None
-
-
 class LoopController(object):
     def __init__(self):
         self.should_break = False
@@ -30,6 +24,7 @@ class LoopController(object):
         self.return_value = None
 
 
+# todo: This whole class should be LoopEvents and it should return LoopBreak, LoopContinue & LoopReturn objects.
 class LoopControl(object):
     """
     Factory for LoopController objects.  Makes it easier to write code that uses a loop controller.

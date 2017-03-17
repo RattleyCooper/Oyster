@@ -1,5 +1,5 @@
-from common import ThreadControl
 from common import LoopControl
+from client import Client
 
 
 class Plugin(object):
@@ -30,12 +30,12 @@ class Plugin(object):
     enabled = True
 
     def run(self, server, data):
-        server.connection_mgr.close_all_connections()
-        thread_control = ThreadControl()
+        print('< Shutting down. >')
 
-        thread_control.control_dictionary = {
-            'ACCEPT_CONNECTIONS': False
-        }
-        thread_control.loop_control = LoopControl().should_break()
+        server.shutdown_event.set()
+        # Boot up a client in order to stop the server's listener thread's
+        # self.sock.accept() call from blocking and allow the ShutdownEvent
+        # to be processed.
+        Client(port=server.port, echo=False)
 
-        return thread_control
+        return LoopControl().should_break()

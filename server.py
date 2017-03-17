@@ -5,13 +5,12 @@ import socket
 from time import sleep
 import os
 from os import execv
-from common import PluginRunner, LoopController, ThreadControl, safe_input
+from common import PluginRunner, LoopController, safe_input
 from connection import Connection, ConnectionManager
 
 
-thread_control = {
-    'ACCEPT_CONNECTIONS': True
-}
+class ShutdownEvent(threading.Event):
+    pass
 
 
 class Server(PluginRunner):
@@ -42,6 +41,8 @@ o       O o   O `Ooo.   O   OooO'  o
         self.reboot = False
 
         self.help_mode = False
+
+        self.shutdown_event = None
 
         self.shell_plugins = []
         self.outgoing_plugins = []
@@ -104,14 +105,14 @@ o       O o   O `Ooo.   O   OooO'  o
             self.bind_socket(attempts=attempts + 1)
         return self
 
-    def listener(self):
+    def listener(self, shutdown_event):
         """
         Start listening for connections.
 
         :return:
         """
 
-        while thread_control['ACCEPT_CONNECTIONS']:
+        while not shutdown_event.is_set():
             try:
                 conn, address = self.socket.accept()
             except socket.error as e:
@@ -129,15 +130,17 @@ o       O o   O `Ooo.   O   OooO'  o
                 self.connection_mgr.add_connection(conn, address)
             else:
                 conn_obj.close()
+                break
 
             # Send the connection it's ip and port
             conn_obj.send_command('oyster set-ip {}'.format(address[0]))
             conn_obj.send_command('oyster set-port {}'.format(address[1]))
 
-            if not thread_control['ACCEPT_CONNECTIONS']:
-                self.connection_mgr.remove_connection(conn_obj)
-                conn_obj.close()
-                return
+            # if not thread_control['ACCEPT_CONNECTIONS']:
+            #     if self.connection_mgr.connections:
+            #         self.connection_mgr.remove_connection(conn_obj)
+            #     conn_obj.close()
+            #     return
             print(
                 '\r< [ Listener Thread ] {} ({}) connected. >\n{}'.format(
                     address[0],
@@ -146,10 +149,12 @@ o       O o   O `Ooo.   O   OooO'  o
                 ),
                 end=''
             )
+            shutdown_event.wait(.1)
 
         print('\n< [ Listener Thread ] Connections no longer being accepted! >')
-        print('< Closing connections. >')
-        self.connection_mgr.close_all_connections()
+        print('< [ Listener Thread ] Closing existing connections. >')
+        if self.connection_mgr.connections:
+            self.connection_mgr.close_all_connections()
         return
 
     def set_cli(self, the_string):
@@ -251,18 +256,6 @@ o       O o   O `Ooo.   O   OooO'  o
                 if isinstance(obj, LoopController):
                     lc = obj
 
-                # If we got a ThreadControl as obj, set the thread_control
-                # keys/values and set the lc variable to equal the obj's
-                # loop_control attribute.
-                if isinstance(obj, ThreadControl):
-                    try:
-                        iterator = obj.control_dictionary.iteritems()
-                    except AttributeError:
-                        iterator = obj.control_dictionary.items()
-                    for k, v in iterator:
-                        thread_control[k] = v
-                    lc = obj.loop_control
-
                 # If the lc variable is a LoopController, do the normal
                 # loop controlling checks.
                 if isinstance(lc, LoopController):
@@ -305,14 +298,14 @@ o       O o   O `Ooo.   O   OooO'  o
                 # If we got a ThreadControl as obj, set the thread_control
                 # keys/values and set the lc variable to equal the obj's
                 # loop_control attribute.
-                if isinstance(obj, ThreadControl):
-                    try:
-                        iterator = obj.control_dictionary.iteritems()
-                    except AttributeError:
-                        iterator = obj.control_dictionary.items()
-                    for k, v in iterator:
-                        thread_control[k] = v
-                    lc = obj.loop_control
+                # if isinstance(obj, ThreadControl):
+                #     try:
+                #         iterator = obj.control_dictionary.iteritems()
+                #     except AttributeError:
+                #         iterator = obj.control_dictionary.items()
+                #     for k, v in iterator:
+                #         thread_control[k] = v
+                #     lc = obj.loop_control
 
                 # If the lc variable is a LoopController, do the normal
                 # loop controlling checks.
@@ -387,9 +380,12 @@ if __name__ == '__main__':
         )
 
         # Start the thread that accepts connections.
-        connection_accepter = threading.Thread(target=server.listener)
+        shutdown_event = ShutdownEvent()
+        connection_accepter = threading.Thread(name='server.listener', target=server.listener, args=(shutdown_event,))
         connection_accepter.setDaemon(True)
         connection_accepter.start()
+
+        server.shutdown_event = shutdown_event
 
         # Load plugins
         print('')
