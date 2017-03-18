@@ -14,6 +14,35 @@ from connection import Connection
 from connection import ConnectionManager
 
 
+def get_arg_dict(args):
+    """
+    Get a dictionary of keyword arguments.
+
+    :param args:
+    :return:
+    """
+
+    output = {
+        'host': '',
+        'port': 6667,
+        'recv_size': 1024,
+        'session_id': '',
+        'echo': True,
+    }
+    for arg in args:
+        if 'host=' in arg:
+            output['host'] = arg.split('=')[1]
+        elif 'port=' in arg:
+            output['port'] = int(arg.split('=')[1])
+        elif 'recv_size=' in arg:
+            output['recv_size'] = int(arg.split('=')[1])
+        elif 'listen=' in arg:
+            output['listen'] = int(arg.split('=')[1].strip())
+        elif 'bind_retry=' in arg:
+            output['bind_retry'] = int(arg.split('=')[1].strip())
+    return output
+
+
 class ShutdownEvent(threading.Event):
     pass
 
@@ -254,13 +283,13 @@ o       O o   O `Ooo.   O   OooO'  o
                 if isinstance(obj, LoopBreakEvent):
                     break
 
-                elif isinstance(obj, LoopContinueEvent):
+                if isinstance(obj, LoopContinueEvent):
                     continue
 
-                elif isinstance(obj, LoopReturnEvent):
+                if isinstance(obj, LoopReturnEvent):
                     return obj.value
-                else:
-                    continue
+
+                continue
 
             # Send command through.
             try:
@@ -313,48 +342,30 @@ o       O o   O `Ooo.   O   OooO'  o
 if __name__ == '__main__':
     def main():
         # Set some default values.
-        the_host = ''
-        the_port = 6667
-        the_recv_size = 1024
-        the_listen = 10
-        the_bind_retry = 5
-
-        def check_cli_arg(arg):
-            """
-            Check command line argument and manipulate the variable
-            that it controls if it matches.
-
-            :param arg:
-            :return:
-            """
-
-            global the_host
-            global the_port
-            global the_recv_size
-            global the_listen
-            global the_bind_retry
-
-            if 'host=' in arg:
-                the_host = arg.split('=')[1]
-            elif 'port=' in arg:
-                the_port = int(arg.split('=')[1])
-            elif 'recv_size=' in arg:
-                the_recv_size = int(arg.split('=')[1])
-            elif 'listen=' in arg:
-                the_listen = int(arg.split('=')[1])
-            elif 'bind_retry=' in arg:
-                the_bind_retry = int(arg.split('=')[1])
+        default_host = ''
+        default_port = 6667
+        default_recv_size = 1024
+        default_listen = 10
+        default_bind_retry = 5
 
         # Check all the command line arguments
-        for argument in sys.argv[1:]:
-            check_cli_arg(argument)
+        args = sys.argv[1:]
+        if not args:
+            args = [
+                'host={}'.format(default_host),
+                'port={}'.format(default_port),
+                'recv_size={}'.format(default_recv_size),
+                'listen={}'.format(default_listen),
+                'bind_retry={}'.format(default_bind_retry)
+            ]
+        arg_dict = get_arg_dict(args)
 
         server = Server(
-            host=the_host,
-            port=the_port,
-            recv_size=the_recv_size,
-            listen=the_listen,
-            bind_retry=the_bind_retry,
+            host=arg_dict['host'],
+            port=arg_dict['port'],
+            recv_size=arg_dict['recv_size'],
+            listen=arg_dict['listen'],
+            bind_retry=arg_dict['bind_retry'],
         )
 
         # Start the thread that accepts connections.

@@ -12,6 +12,35 @@ from common import LoopContinueEvent
 from common import LoopBreakEvent
 
 
+def get_arg_dict(args):
+    """
+    Get a dictionary of keyword arguments.
+
+    :param args:
+    :return:
+    """
+
+    output = {
+        'host': '',
+        'port': 6667,
+        'recv_size': 1024,
+        'session_id': '',
+        'echo': True,
+    }
+    for arg in args:
+        if 'host=' in arg:
+            output['host'] = arg.split('=')[1]
+        elif 'port=' in arg:
+            output['port'] = int(arg.split('=')[1])
+        elif 'recv_size=' in arg:
+            output['recv_size'] = int(arg.split('=')[1])
+        elif 'session_id=' in arg:
+            output['session_id'] = arg.split('=')[1].strip()
+        elif 'echo=' in arg:
+            output['echo'] = False if arg.split('=')[1].strip().upper() == 'N' else True
+    return output
+
+
 class Client(PluginRunner):
     """
     The Client object is in charge of staying connected to the Server and forwarding
@@ -214,14 +243,15 @@ class Client(PluginRunner):
             'port={}'.format(self.port),
             'host={}'.format(self.host),
             'recv_size={}'.format(self.recv_size),
-            'session_id='.format(self.session_id)
+            'session_id={}'.format(self.session_id),
+            'echo={}'.format(self.echo)
         ]
-        # execv(sys.executable, rc)
 
         try:
-            popen_rc = [sys.executable] + list(sys.argv)
+            popen_rc = [sys.executable] + list((sys.argv[0],)) + rc[1:]
             p = subprocess.Popen(popen_rc)
             p.communicate()
+            sys.exit()
         except PermissionError:
             from os import execv
             if self.echo:
@@ -319,40 +349,30 @@ class Client(PluginRunner):
 
 if __name__ == '__main__':
     def main():
-        the_host = ''
-        the_port = 6667
-        the_recv_size = 1024
-        the_session_id = ''
-        the_echo = True
+        default_host = ''
+        default_port = 6667
+        default_recv_size = 1024
+        default_session_id = ''
+        default_echo = True
 
-        def check_cli_arg(arg):
-            global the_host
-            global the_port
-            global the_recv_size
-            global the_session_id
-            global the_echo
-
-            if 'host=' in arg:
-                the_host = arg.split('=')[1]
-            elif 'port=' in arg:
-                the_port = int(arg.split('=')[1])
-            elif 'recv_size=' in arg:
-                the_recv_size = int(arg.split('=')[1])
-            elif 'session_id=' in arg:
-                the_session_id = arg.split('=')[1].strip()
-            elif 'echo=' in arg:
-                the_echo = False if arg.split('=')[1].strip().upper() == 'N' else True
-
-        for argument in sys.argv[1:]:
-            check_cli_arg(argument)
+        args = sys.argv[1:]
+        if not args:
+            args = [
+                'host={}'.format(default_host),
+                'port={}'.format(default_port),
+                'recv_size={}'.format(default_recv_size),
+                'session_id={}'.format(default_session_id),
+                'echo={}'.format(default_echo)
+            ]
+        arg_dict = get_arg_dict(args)
 
         # Instantiate the client.
         client = Client(
-            host=the_host,
-            port=the_port,
-            recv_size=the_recv_size,
-            session_id=the_session_id,
-            echo=the_echo
+            host=arg_dict['host'],
+            port=arg_dict['port'],
+            recv_size=arg_dict['recv_size'],
+            session_id=arg_dict['session_id'],
+            echo=arg_dict['echo']
         )
 
         client.main()
