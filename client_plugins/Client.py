@@ -21,7 +21,7 @@ class Plugin(object):
             try:
                 key, value = args[1], args[2]
             except IndexError:
-                client.server_print('< `setattr` requires a `key` and `value`. >')
+                client.server_print('< `-s`(setattr) requires a `key` and `value`. >')
                 return
             try:
                 setattr(client, key, value)
@@ -29,6 +29,24 @@ class Plugin(object):
             except AttributeError:
                 client.server_print('< Client has no attribute, "{}". >'.format(key))
 
+            return
+
+        # Get an attribute from the Client instance.
+        if args[0] == '-g':
+            try:
+                key = args[1]
+            except IndexError:
+                client.server_print('< `-g`(getattr) requires a `key`. >')
+                return
+
+            try:
+                attr = getattr(client, key)
+                client.server_print('< {} = {} >'.format(key, attr))
+            except AttributeError:
+                client.server_print('< Client has no attribute, "{}" >'.format(key))
+            return
+
+        if args[0] == '-debug':
             return
 
         # Restart the `client.py` script.
