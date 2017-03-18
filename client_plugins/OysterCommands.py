@@ -66,12 +66,6 @@ class Plugin(object):
             client.handle_disconnect()
             return
 
-        # Reboot self
-        if args[0] == 'shell-reboot':
-            client.send_data('confirmed')
-            client.sock.close()
-            return LoopEvent.should_break()
-
         # Get the current working directory.
         if args[0] == 'getcwd':
             Plugin.send_data_with_cwd(client, '')
@@ -106,12 +100,6 @@ class Plugin(object):
             Plugin.self_destruct()
             sys.exit()
 
-        # Restart the `client.py` script.
-        if args[0] == 'reboot':
-            client.send_data('')
-            Plugin.reboot_client(client)
-            sys.exit()
-
         return
 
     @staticmethod
@@ -139,42 +127,3 @@ class Plugin(object):
 
         client.sock.send(str.encode(some_data + str(getcwd()) + '> ' + '~!_TERM_$~'))
         return
-
-    @staticmethod
-    def reboot_client(client):
-        """
-        Reboot the client.
-
-        :return:
-        """
-
-        try:
-            client.sock.close()
-        except socket.error:
-            pass
-
-        rc = [
-            sys.executable,
-            'port={}'.format(client.port),
-            'host={}'.format(client.host),
-            'recv_size={}'.format(client.recv_size),
-            'server_shutdown={}'.format(client.server_shutdown),
-            'session_id='.format(client.session_id)
-        ]
-
-        # Try to use subprocess to reboot.  If there is a permissions error,
-        # use execv to try to achieve the same thing.
-        try:
-            popen_rc = [sys.executable] + list(sys.argv)
-            p = subprocess.Popen(popen_rc)
-            p.communicate()
-        except PermissionError:
-            from os import execv
-            print('Using execv...')
-            rc.pop(0)
-            rc.insert(0, realpath(__file__))
-            rc.insert(0, '')
-            execv(sys.executable, rc)
-
-        sys.exit()
-
