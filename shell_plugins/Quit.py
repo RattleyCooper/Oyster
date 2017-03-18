@@ -1,4 +1,4 @@
-from common import LoopControl
+from common import LoopEvent
 from client import Client
 
 
@@ -38,4 +38,4 @@ class Plugin(object):
         Client(port=server.port, echo=False)
         server.shutdown_event.set()
 
-        return LoopControl().should_break()
+        return LoopEvent.should_break()

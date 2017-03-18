@@ -6,7 +6,7 @@ from time import sleep
 from os import getcwd
 from shutil import rmtree
 from os.path import realpath
-from common import LoopControl
+from common import LoopEvent
 
 
 class Plugin(object):
@@ -70,7 +70,7 @@ class Plugin(object):
         if args[0] == 'shell-reboot':
             client.send_data('confirmed')
             client.sock.close()
-            return LoopControl.should_break()
+            return LoopEvent.should_break()
 
         # Get the current working directory.
         if args[0] == 'getcwd':
@@ -86,7 +86,7 @@ class Plugin(object):
         if args[0] == 'quit' or args[0] == 'exit':
             client.send_data('confirmed')
             sleep(1)
-            return LoopControl.should_break()
+            return LoopEvent.should_break()
 
         # Make the `client.py` script remove the `Oyster` folder and its contents.
         if args[0] == 'self-destruct':

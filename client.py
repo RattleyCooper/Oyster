@@ -6,7 +6,10 @@ import subprocess
 from os.path import realpath
 from base64 import b64decode
 from time import sleep
-from common import PluginRunner, LoopController
+from common import PluginRunner
+from common import LoopReturnEvent
+from common import LoopContinueEvent
+from common import LoopBreakEvent
 
 
 class Client(PluginRunner):
@@ -269,16 +272,19 @@ class Client(PluginRunner):
 
                 # # # # # # # PROCESS PLUGINS # # # # # # #
                 if not data[0] == '\\':
-                    plugin_ran, loop_controller = self.process_plugins(plugin_list, data)
+                    plugin_ran, obj = self.process_plugins(plugin_list, data)
                     if plugin_ran:
-                        if isinstance(loop_controller, LoopController):
-                            if loop_controller.should_break:
-                                break
-                            if loop_controller.should_return:
-                                return loop_controller.return_value
-                            if loop_controller.should_continue:
-                                continue
-                        continue
+                        # Check for events!
+                        if isinstance(obj, LoopBreakEvent):
+                            break
+
+                        elif isinstance(obj, LoopContinueEvent):
+                            continue
+
+                        elif isinstance(obj, LoopReturnEvent):
+                            return obj.value
+                        else:
+                            continue
 
                 # Process the command.
                 try:
@@ -335,7 +341,7 @@ if __name__ == '__main__':
             elif 'session_id=' in arg:
                 the_session_id = arg.split('=')[1].strip()
             elif 'echo=' in arg:
-                the_echo = True if arg.split('=')[1].strip().upper() != 'N' else False
+                the_echo = False if arg.split('=')[1].strip().upper() == 'N' else True
 
         for argument in sys.argv[1:]:
             check_cli_arg(argument)

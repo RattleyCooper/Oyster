@@ -5,8 +5,13 @@ import socket
 from time import sleep
 import os
 from os import execv
-from common import PluginRunner, LoopController, safe_input
-from connection import Connection, ConnectionManager
+from common import PluginRunner
+from common import safe_input
+from common import LoopReturnEvent
+from common import LoopContinueEvent
+from common import LoopBreakEvent
+from connection import Connection
+from connection import ConnectionManager
 
 
 class ShutdownEvent(threading.Event):
@@ -136,11 +141,6 @@ o       O o   O `Ooo.   O   OooO'  o
             conn_obj.send_command('oyster set-ip {}'.format(address[0]))
             conn_obj.send_command('oyster set-port {}'.format(address[1]))
 
-            # if not thread_control['ACCEPT_CONNECTIONS']:
-            #     if self.connection_mgr.connections:
-            #         self.connection_mgr.remove_connection(conn_obj)
-            #     conn_obj.close()
-            #     return
             print(
                 '\r< [ Listener Thread ] {} ({}) connected. >\n{}'.format(
                     address[0],
@@ -251,21 +251,16 @@ o       O o   O `Ooo.   O   OooO'  o
             # # # # # # # PROCESS PLUGINS # # # # # # #
             plugin_ran, obj = self.process_plugins(self.outgoing_plugins, command, help_mode_on=self.help_mode)
             if plugin_ran:
-                lc = None
-                # Set the lc variable to match the obj if we got a LoopController
-                if isinstance(obj, LoopController):
-                    lc = obj
+                if isinstance(obj, LoopBreakEvent):
+                    break
 
-                # If the lc variable is a LoopController, do the normal
-                # loop controlling checks.
-                if isinstance(lc, LoopController):
-                    if lc.should_break:
-                        break
-                    if lc.should_return:
-                        return obj.return_value
-                    if lc.should_continue:
-                        continue
-                continue
+                elif isinstance(obj, LoopContinueEvent):
+                    continue
+
+                elif isinstance(obj, LoopReturnEvent):
+                    return obj.value
+                else:
+                    continue
 
             # Send command through.
             try:
@@ -290,32 +285,15 @@ o       O o   O `Ooo.   O   OooO'  o
             # # # # # # # PROCESS PLUGINS # # # # # # #
             plugin_ran, obj = self.process_plugins(self.shell_plugins, command, help_mode_on=self.help_mode)
             if plugin_ran:
-                lc = None
-                # Set the lc variable to match the obj if we got a LoopController
-                if isinstance(obj, LoopController):
-                    lc = obj
+                if isinstance(obj, LoopBreakEvent):
+                    break
 
-                # If we got a ThreadControl as obj, set the thread_control
-                # keys/values and set the lc variable to equal the obj's
-                # loop_control attribute.
-                # if isinstance(obj, ThreadControl):
-                #     try:
-                #         iterator = obj.control_dictionary.iteritems()
-                #     except AttributeError:
-                #         iterator = obj.control_dictionary.items()
-                #     for k, v in iterator:
-                #         thread_control[k] = v
-                #     lc = obj.loop_control
+                if isinstance(obj, LoopContinueEvent):
+                    continue
 
-                # If the lc variable is a LoopController, do the normal
-                # loop controlling checks.
-                if isinstance(lc, LoopController):
-                    if lc.should_break:
-                        break
-                    if lc.should_return:
-                        return obj.return_value
-                    if lc.should_continue:
-                        continue
+                if isinstance(obj, LoopReturnEvent):
+                    return obj.value
+
                 continue
         return
 

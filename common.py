@@ -16,68 +16,79 @@ def safe_input(display_string):
     return x
 
 
-class LoopController(object):
-    def __init__(self):
-        self.should_break = False
-        self.should_return = False
-        self.should_continue = False
-        self.return_value = None
-
-
-# todo: This whole class should be LoopEvents and it should return LoopBreak, LoopContinue & LoopReturn objects.
-class LoopControl(object):
+class LoopEvent(object):
     """
-    Factory for LoopController objects.  Makes it easier to write code that uses a loop controller.
+    Factory for LoopEvent objects.  LoopEvent objects are used to control the main
+    loop of a shell(Oyster or client) from with a Plugin.  Just return one of the
+    LoopEvent objects(LoopContinueEvent, LoopReturnEvent(data), LoopBreakEvent).
 
-    Usage changes from:
+    This example will do everything necessary to make the Oyster shell loop stop:
 
-        lc = LoopController()
-        lc.should_break = True
-        return lc
+        from common import LoopEvent
 
-    to:
+        class Plugin(object):
+            invocation = 'test'
+            version = 'v1.0'
+            enabled = True
 
-        lc = LoopControl()
-        return lc.should_break()
+            def run(server, data):
+                print('< Shutting down. >')
+
+                # Boot up a client in order to stop the server's listener thread's
+                # self.sock.accept() call from blocking and allow the ShutdownEvent
+                # to be processed.
+                Client(port=server.port, echo=False)
+
+                # Tell the listener to shutdown
+                server.shutdown_event.set()
+
+                # Tell the Oyster shell's main loop it should `break`.
+                return LoopEvent.should_break()
     """
 
     @staticmethod
     def should_break():
         """
-        Return a breaking loop controller.
+        Return a breaking loop event.
 
         :return:
         """
 
-        lc = LoopController()
-        lc.should_break = True
-        return lc
+        return LoopBreakEvent()
 
     @staticmethod
     def should_continue():
         """
-        Return a continuing loop controller
+        Return a continuing loop event
 
         :return:
         """
 
-        lc = LoopController()
-        lc.should_continue = True
-        return lc
+        return LoopContinueEvent()
 
     @staticmethod
     def should_return(value):
         """
-        Return a returning loop controller.
+        Return a returning loop event.
 
         :param value:
         :return:
         """
 
-        lc = LoopController()
-        lc.should_return = True
-        lc.return_value = value
-        return lc
+        return LoopReturnEvent(value)
+
+
+class LoopContinueEvent(LoopEvent):
+    pass
+
+
+class LoopBreakEvent(LoopEvent):
+    pass
+
+
+class LoopReturnEvent(LoopEvent):
+    def __init__(self, value):
+        self.value = value
 
 
 class PluginRunner(object):
@@ -126,6 +137,12 @@ class PluginRunner(object):
                 invocation_length = len(module.Plugin.invocation)
                 invocation_type = type(module.Plugin.invocation)
 
+                if not module.Plugin.enabled and not hasattr(module.Plugin, 'required'):
+                    continue
+
+                if hasattr(module.Plugin, 'required') and not module.Plugin.required:
+                    continue
+
                 if invocation_type == list or invocation_type == tuple:
                     invocations = list(module.Plugin.invocation)
                     invocations.sort(key=len)
@@ -139,10 +156,9 @@ class PluginRunner(object):
                             break
 
                 elif data[:invocation_length] == module.Plugin.invocation:
-                    if module.Plugin.enabled or (hasattr(module.Plugin, 'required') and module.Plugin.required):
-                        if help_mode_on:
-                            help(module.Plugin)
-                        results = self.run_plugin(module, data, invocation_length)
+                    if help_mode_on:
+                        help(module.Plugin)
+                    results = self.run_plugin(module, data, invocation_length)
 
                 if not results:
                     continue

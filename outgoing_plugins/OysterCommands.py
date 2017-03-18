@@ -1,5 +1,5 @@
 import shlex
-from common import LoopControl
+from common import LoopEvent
 
 
 class Plugin(object):
@@ -21,5 +21,5 @@ class Plugin(object):
             except BrokenPipeError as err_msg:
                 server.connection_mgr.remove_connection(server.connection_mgr.current_connection)
                 server.connection_mgr.current_connection = None
-                return LoopControl.should_break()
-            return LoopControl.should_break()
+                return LoopEvent.should_break()
+            return LoopEvent.should_break()

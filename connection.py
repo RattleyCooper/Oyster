@@ -141,7 +141,7 @@ class Connection(object):
             try:
                 data = self.connection.recv(self.recv_size)
             except ConnectionResetError:
-                print('< Connection reset by peer. >')
+                # print('< Connection reset by peer. >')
                 self.status = 'CLOSED'
                 break
             if len(data) < 1:

