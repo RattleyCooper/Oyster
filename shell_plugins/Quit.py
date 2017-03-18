@@ -32,10 +32,10 @@ class Plugin(object):
     def run(self, server, data):
         print('< Shutting down. >')
 
-        server.shutdown_event.set()
         # Boot up a client in order to stop the server's listener thread's
         # self.sock.accept() call from blocking and allow the ShutdownEvent
         # to be processed.
         Client(port=server.port, echo=False)
+        server.shutdown_event.set()
 
         return LoopControl().should_break()
