@@ -3,6 +3,53 @@ import sys
 import socket
 import subprocess
 from os.path import realpath
+from code import InteractiveConsole
+
+
+class FileCacher:
+    "Cache the stdout text so we can analyze it before returning it"
+    def __init__(self):
+        self.out = []
+        self.reset()
+
+    def reset(self):
+        self.out = []
+
+    def write(self, line):
+        self.out.append(line)
+
+    def flush(self):
+        output = ''.join(self.out)
+        self.reset()
+        return output
+
+
+class Shell(InteractiveConsole):
+    "Wrapper around Python that can filter input/output to the shell"
+    def __init__(self, locals=None, filename='<console>'):
+        self.stdout = sys.stdout
+        self.cache = FileCacher()
+        super(Shell, self).__init__(locals=locals, filename=filename)
+        return
+
+    def get_output(self):
+        sys.stdout = self.cache
+
+    def return_output(self):
+        sys.stdout = self.stdout
+
+    def push(self, line):
+        self.get_output()
+        # you can filter input here by doing something like
+        # line = filter(line)
+        InteractiveConsole.push(self, line)
+        self.return_output()
+        output = self.cache.flush().strip()
+        # you can filter the output here by doing something like
+        # output = filter(output)
+        # or do something else with it
+        print(output)
+        return output
 
 
 class Plugin(object):
@@ -15,6 +62,18 @@ class Plugin(object):
 
         if not args:
             client.server_print('< The `client` command requires an argument. >')
+
+        if args[0] == '-i':
+            client.send_data('')
+            console = Shell(locals={'client': client, 'data': data})
+            while True:
+                command = client.receive_data()
+                if command == 'exit()':
+                    client.server_print('< InteractiveConsole shutting down. >')
+                    break
+                output = console.push(command)
+                client.send_data(output)
+            return
 
         # Set an attribute on the Client instance.
         if args[0] == '-s':

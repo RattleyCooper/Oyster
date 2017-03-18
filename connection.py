@@ -305,13 +305,15 @@ class ConnectionManager(object):
             self.connections.pop(ip)
         return self
 
-    def send_command(self, command, echo=False, encode=True, file_response=False):
+    def send_command(self, command, echo=False, encode=True, file_response=False, get_cwd=True):
         """
         Send a command to the currently selected client.
 
         :param command:
         :param echo:
         :param encode:
+        :param file_response:
+        :param get_cwd:
         :return:
         """
 
@@ -333,7 +335,8 @@ class ConnectionManager(object):
 
         if echo:
             print(response)
-        self.cwd = self.current_connection.send_command('oyster getcwd')
+        if get_cwd:
+            self.cwd = self.current_connection.send_command('oyster getcwd')
         return response
 
     def send_commands(self, command, echo=False):
