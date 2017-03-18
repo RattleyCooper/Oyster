@@ -133,6 +133,7 @@ class Connection(object):
         """
         Receive a response from the server.
 
+        :param echo:
         :return:
         """
 
