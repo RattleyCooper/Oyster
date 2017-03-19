@@ -113,7 +113,7 @@ class Plugin(object):
     @staticmethod
     def python_shell(client, data):
         # Create a InteractiveConsole instance.
-        console = Shell(locals={'client': client, 'data': data})
+        console = Shell(filename='< Interactive Python Console >', locals={'client': client, 'data': data})
         while True:
             # Receive a command.
             command = client.receive_data()
