@@ -71,7 +71,7 @@ class Plugin(object):
                                     Use `exit()` to exit.  The `Client`
                                     object is accessible through the
                                     `client` variable when in the
-                                    interactive python shell.
+                                    console.  Any changes will persist.
 
         client -s {key} {value} -   Basically a simple way to set an
                                     attribute on the `Client` object

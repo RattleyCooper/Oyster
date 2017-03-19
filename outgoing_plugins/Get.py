@@ -4,12 +4,30 @@ from os.path import expanduser
 
 class Plugin(object):
     """
-    The plugin that handles the `get` command.
+    Get v1.0
+
+    The `get` command downloads a file(or zipped folder) from
+    the currently connected client.
+
+    Invocation:
+
+        get
+
+    Commands:
+
+        get {remote_filepath} {local_filepath}      -   Get a file from the client's
+                                                        {remote_filepath} and store
+                                                        it at the specified
+                                                        {local_filepath}.
+
+    Example:
+
+        < 127.0.0.1 > /Users/user/Oyster> get "/Users/user name/Dropbox" db.zip
     """
 
     version = 'v1.0'
     # invocation must be set to the command that invokes the plugin.
-    invocation = 'get '
+    invocation = 'get'
     enabled = True
 
     # The run method must be set on the Plugin object in order to do anything
