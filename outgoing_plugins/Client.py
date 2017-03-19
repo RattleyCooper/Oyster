@@ -4,7 +4,7 @@ from common import safe_input
 
 class Plugin(object):
     version = 'v1.0'
-    invocation = 'client '
+    invocation = 'client'
     enabled = True
 
     def run(self, server, data):

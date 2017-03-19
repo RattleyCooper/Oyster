@@ -6,7 +6,7 @@ from os.path import realpath
 from code import InteractiveConsole
 
 
-class FileCacher:
+class FileCache:
     """
     Cache the stdout/stderr text so we can analyze it before returning it.
     """
@@ -33,7 +33,7 @@ class Shell(InteractiveConsole):
     def __init__(self, locals=None, filename='<console>'):
         self.stdout = sys.stdout
         self.stderr = sys.stderr
-        self.cache = FileCacher()
+        self.cache = FileCache()
         super(Shell, self).__init__(locals=locals, filename=filename)
         return
 
@@ -55,8 +55,56 @@ class Shell(InteractiveConsole):
 
 
 class Plugin(object):
+    """
+    Client v1.0
+
+    Plugin made for handling client-based commands or commands that have to do with
+    the `Client` object.
+
+    Invocation:
+
+        client
+
+    Commands:
+
+        client -i               -   Enter an interactive Python console.
+                                    Use `exit()` to exit.  The `Client`
+                                    object is accessible through the
+                                    `client` variable when in the
+                                    interactive python shell.
+
+        client -s {key} {value} -   Basically a simple way to set an
+                                    attribute on the `Client` object
+                                    quickly.  Anything complex should
+                                    use the interactive shell.
+
+        client -g {key}         -   Wrapper around `getattr` for the
+                                    `Client` object.
+
+        client -r               -   Reboot the `client.py` script.
+                                    Any attributes changed
+    Example:
+
+        <127.0.0.1> /Users/user/Oyster> client -i
+        |>>> client.port
+        6667
+        |>>> client.port = 6668
+        |>>> x
+        Traceback (most recent call last):
+          File "/Users/sanctuary/Dropbox/Python/Oyster/common.py", line 114, in run_plugin
+            result = plugin.run(self, command)
+        TypeError: run() missing 1 required positional argument: 'data'
+
+        During handling of the above exception, another exception occurred:
+
+        Traceback (most recent call last):
+          File "< Interactive Python Console >", line 1, in <module>
+        NameError: name 'x' is not defined
+        |>>>
+    """
+
     version = 'v1.0'
-    invocation = 'client '
+    invocation = 'client'
     enabled = True
 
     def run(self, client, data):
@@ -101,9 +149,6 @@ class Plugin(object):
                 client.server_print('< Client has no attribute, "{}" >'.format(key))
             return
 
-        if args[0] == '-debug':
-            return
-
         # Restart the `client.py` script.
         if args[0] == '-r':
             client.send_data('')
@@ -112,6 +157,14 @@ class Plugin(object):
 
     @staticmethod
     def python_shell(client, data):
+        """
+        The main loop for the custom interactive python shell.
+
+        :param client:
+        :param data:
+        :return:
+        """
+
         # Create a InteractiveConsole instance.
         console = Shell(filename='< Interactive Python Console >', locals={'client': client, 'data': data})
         while True:
