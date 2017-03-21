@@ -56,6 +56,7 @@ class Client(PluginRunner):
         self.reconnect_to_session = True
         self.ip_address = '0.0.0.0'
         self.connected_port = '00000'
+        self.__file__ = __file__
         self.sock = self._connect_to_server()
 
     def _connect_to_server(self):

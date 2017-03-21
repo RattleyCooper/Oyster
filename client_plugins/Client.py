@@ -122,10 +122,18 @@ class Plugin(object):
         # Set an attribute on the Client instance.
         if args[0] == '-s':
             try:
-                key, value = args[1], args[2]
+                key = args[1]
             except IndexError:
-                client.server_print('< `-s`(setattr) requires a `key` and `value`. >')
+                client.server_print('< `-s`(setattr) requires a `key`. >')
                 return
+
+            # If there is not second argument, assume it should be set to
+            # a blank string. This
+            try:
+                value = args[2]
+            except IndexError:
+                value = ''
+
             try:
                 setattr(client, key, value)
                 client.server_print('< Client attribute "{}" set to "{}". >'.format(key, value))
@@ -155,6 +163,15 @@ class Plugin(object):
             Plugin.reboot_client(client)
             sys.exit()
 
+        # Use an interactive shell to capture the output of the `help` command.
+        # Kind of hacky, but since the `Shell` class is already available I don't
+        # see why not.
+        shell = Shell(locals={'client': client, 'Plugin': Plugin, 'self': self})
+        result = shell.push('help(Plugin)')
+
+        client.server_print(result)
+        return
+
     @staticmethod
     def python_shell(client, data):
         """
@@ -166,7 +183,14 @@ class Plugin(object):
         """
 
         # Create a InteractiveConsole instance.
-        console = Shell(filename='< Interactive Python Console >', locals={'client': client, 'data': data})
+        l = {
+            'client': client,
+            'data': data,
+            '__file__': __file__,
+            '__name__': __name__,
+            '__package__': __package__
+        }
+        console = Shell(filename='< Remote Python Console >', locals=l)
         while True:
             # Receive a command.
             command = client.receive_data()
