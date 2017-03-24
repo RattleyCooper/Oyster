@@ -132,6 +132,32 @@ plugins -l                                      -   List all plugins.
 oyster reboot                                   -   Reboot the selected
                                                     client.
                                                     
+client -s {key} {value}                         -   Wrapper around 
+                                                    python's `setattr` 
+                                                    function.  It will
+                                                    set an attribute
+                                                    on the `Client`
+                                                    object.
+                                                    
+client -g {key}                                 -   Wrapper around
+                                                    python's `getattr`
+                                                    function.  It will
+                                                    get an attribute
+                                                    from the `Client`
+                                                    object.
+                                       
+client -r                                       -   Reboot the client.py
+                                                    script.
+                                                    
+client -i                                       -   Enter an interactive 
+                                                    Python console. Use 
+                                                    `exit()` to exit.  
+                                                    The `Client` object 
+                                                    is accessible through 
+                                                    the `client` variable 
+                                                    when in the console.
+                                                    Any changes will persist.
+                                                    
 oyster self-destruct                            -   Removes the client 
 ```
 
