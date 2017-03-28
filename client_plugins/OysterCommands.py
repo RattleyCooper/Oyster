@@ -125,5 +125,5 @@ class Plugin(object):
         :return:
         """
 
-        client.sock.send(str.encode(some_data + str(getcwd()) + '> ' + '~!_TERM_$~'))
+        client.send_data(some_data + str(getcwd()) + '> ')
         return
