@@ -43,6 +43,7 @@ class Plugin(object):
             else:
                 client.send_data('True')
                 client.session_id = uuid
+            return
 
         if args[0] == 'set-session-id':
             client.set_session_id(args[1])
@@ -99,6 +100,8 @@ class Plugin(object):
 
             Plugin.self_destruct()
             sys.exit()
+
+        client.server_print('< No command: {} >'.format(data))
 
         return
 
