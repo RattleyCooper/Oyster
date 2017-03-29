@@ -56,7 +56,7 @@ class Plugin(object):
             file_response=expanduser(local_filepath)
         )
 
-        print('< < {} > >'.format(response))
+        print('< {} >'.format(response))
         if 'Errno' not in response:
             print('< File Stashed: {} >'.format(expanduser(local_filepath)))
         return
