@@ -1,5 +1,22 @@
 
 
+def bytes_packet(_bytes, termination_string=']'):
+    """
+    Create a packet containing the amount of bytes for the proceeding data.
+
+    :param _bytes:
+    :param termination_string:
+    :return:
+    """
+
+    try:
+        _bytes.decode('utf-8')
+    except AttributeError:
+        raise ValueError('bytes_packet expects a string of bytes but got a {}'.format(type(_bytes)))
+
+    return '{}{}'.format(len(_bytes), termination_string)
+
+
 def safe_input(display_string):
     """
     Get input from user.  Should work with python 2.7 and 3.x
@@ -25,6 +42,7 @@ class LoopEvent(object):
     This example will do everything necessary to make the Oyster shell loop stop:
 
         from common import LoopEvent
+        from client import Client, ClientConnection
 
         class Plugin(object):
             invocation = 'test'
@@ -37,7 +55,7 @@ class LoopEvent(object):
                 # Boot up a client in order to stop the server's listener thread's
                 # self.sock.accept() call from blocking and allow the ShutdownEvent
                 # to be processed.
-                Client(port=server.port, echo=False)
+                Client(ClientConnection, port=server.port, echo=False)
 
                 # Tell the listener to shutdown
                 server.shutdown_event.set()
