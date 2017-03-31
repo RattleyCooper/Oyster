@@ -52,16 +52,16 @@ class Plugin(object):
 
         if args[0] == '-i':
             # Tell the client we want an interactive python shell.
-            server.connection_mgr.send_command('client -i', get_cwd=False)
+            server.connection_mgr.send_command('client -i')
             while True:
                 # Ask for a command to send to the client.
                 command = safe_input('>>> ')
                 # Handle the exit() command if needed.
                 if command == 'exit()':
-                    server.connection_mgr.send_command(command, get_cwd=False)
+                    server.connection_mgr.send_command(command)
                     break
                 # Send the command to the client and print the response..
-                response = server.connection_mgr.send_command(command, get_cwd=False)
+                response = server.connection_mgr.send_command(command)
                 if response.strip():
                     print(response.strip())
             return

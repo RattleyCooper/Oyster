@@ -1,5 +1,6 @@
 from common import LoopEvent
 from client import Client
+from connection import ClientConnection
 
 
 class Plugin(object):
@@ -35,7 +36,7 @@ class Plugin(object):
         # Boot up a client in order to stop the server's listener thread's
         # self.sock.accept() call from blocking and allow the ShutdownEvent
         # to be processed.
-        Client(port=server.port, echo=False)
+        Client(ClientConnection, port=server.port, echo=False)
         server.shutdown_event.set()
 
         return LoopEvent.should_break()

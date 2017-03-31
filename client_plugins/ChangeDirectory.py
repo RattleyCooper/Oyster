@@ -33,7 +33,7 @@ class Plugin(object):
             # request the current working directory, which will then
             # be displayed to the controller using the server shell.
             # This is how it mimics the `cd` command.
-            client.send_data('')
+            client.terminate()
             return
         except Exception as err_msg:
             # If we get any errors, send em back!

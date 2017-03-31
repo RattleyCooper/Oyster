@@ -40,6 +40,13 @@ class Plugin(object):
             print('Could not connect to client with given information.')
             return
 
-        server.start_client_shell()
+        # c =[
+        #     'cd ~/Music/iTunes',
+        #     'cd iTunes\ Media',
+        #     'cd Music',
+        #     'cd Grimes',
+        #     'cd Art\ Angels'
+        # ]
+        server.start_client_shell(commands=c)
         return
 

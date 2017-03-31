@@ -1,5 +1,6 @@
 import shlex
 from os.path import expanduser
+from connection import HeaderServer
 
 
 class Plugin(object):
@@ -53,10 +54,18 @@ class Plugin(object):
         # save the data to.
         response = server.connection_mgr.send_command(
             'get {}'.format(remote_filepath),
-            file_response=expanduser(local_filepath)
+            file_response=expanduser(local_filepath),
+            echo=False
         )
 
-        print('< {} >'.format(response))
+        # print('< {} >'.format(response))
         if 'Errno' not in response:
             print('< File Stashed: {} >'.format(expanduser(local_filepath)))
+            pass
+
+        # The HeaderServer expects the client to send an empty string
+        # once it is done sending the file data, so we have to receive
+        # it.
+        if server.connection_mgr.connection_type == HeaderServer:
+            server.connection_mgr.current_connection.get_response()
         return

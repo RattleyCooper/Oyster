@@ -8,7 +8,7 @@ def bytes_packet(_bytes, termination_string=']'):
     :param termination_string:
     :return:
     """
-    
+
     return '{}{}'.format(len(_bytes), termination_string)
 
 

