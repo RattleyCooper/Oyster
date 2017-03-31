@@ -8,12 +8,7 @@ def bytes_packet(_bytes, termination_string=']'):
     :param termination_string:
     :return:
     """
-
-    try:
-        _bytes.decode('utf-8')
-    except AttributeError:
-        raise ValueError('bytes_packet expects a string of bytes but got a {}'.format(type(_bytes)))
-
+    
     return '{}{}'.format(len(_bytes), termination_string)
 
 
