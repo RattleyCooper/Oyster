@@ -28,7 +28,8 @@ class Plugin(object):
     invocation = 'use'
     enabled = True
 
-    def run(self, server, data):
+    @staticmethod
+    def run(server, data):
         # Drop into the given connection's shell.
 
         data = data.strip()
