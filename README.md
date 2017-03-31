@@ -296,8 +296,7 @@ I'm not sure how much the `-S` flag differs between unix flavours.
 Start `client.py` on the target machine.  The client should keep itself
 up and running, unless it errors out for some odd reason.  When updates
 are pushed to the client from the server, the client will overwrite
-and restart itself.  It's up to the user to figure out how to get this 
-to run on startup or whatever.  Here are startup arguments.
+and restart itself.  Here are startup arguments.
 
 ```
 host
