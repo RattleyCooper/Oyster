@@ -40,6 +40,7 @@ class Plugin(object):
             print('Could not connect to client with given information.')
             return
 
+        c = None
         # c =[
         #     'cd ~/Music/iTunes',
         #     'cd iTunes\ Media',
