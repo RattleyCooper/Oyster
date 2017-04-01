@@ -11,15 +11,24 @@ o       O o   O `Ooo.   O   OooO'  o
            OoO'
 ```
 
-Oyster is a lightweight multi-threaded reverse shell written in pure 
+Oyster is a lightweight multi-threaded "reverse shell" written in pure 
 python 3.  The server can push updates to the clients, and the clients 
 will overwrite/restart themselves.  Client/Server/Server Shell commands 
-can also be added using the plugin system.
+can also be added using the plugin system so you don't have to modify
+the `client.py` or `server.py` scripts directly.
 
 I wrote this after finding an example reverse shell on the thenewboston 
 youtube channel.  I saw some things I wanted to improve, so that's what 
 I attempted to do.  The clients will continuously try to make a 
 connection with the server.
+
+_Disclaimer:  This was written and is continued to be maintained because
+I enjoy writing code with web sockets and since I tinkered with the 
+initial version, it has evolved into a useful tool for myself(managing
+raspberry pi's over the network without having to SSH and transferring 
+files to the pythonista app).  Most of the functionality was written as 
+a "proof of concept", so it isn't meant to be secure or work as an
+actual reverse shell._
 
 ## Control Server
 
