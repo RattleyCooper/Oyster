@@ -9,3 +9,4 @@ new_server.py
 Example.py
 __pychache__*
 dist*
+build*
