@@ -58,7 +58,6 @@ class Client(PluginRunner):
         self.ip_address = '0.0.0.0'
         self.connected_port = '00000'
         self.reconnect_to_session = True
-        self.collection = {}
         self.connection_type = connection_type
         self.sock = connection_type(
             host=host,
@@ -71,8 +70,8 @@ class Client(PluginRunner):
     def send_data(self, some_data, echo=True, encode=True, chunks=False):
         return self.sock.send_data(some_data, echo=echo, encode=encode, chunks=chunks)
 
-    def receive_data(self, echo=False, decode=True):
-        return self.sock.receive_data(echo=echo, decode=decode)
+    def receive_data(self, echo=False):
+        return self.sock.receive_data(echo=echo)
 
     def handle_disconnect(self):
         """
@@ -306,6 +305,7 @@ if __name__ == '__main__':
         client.main()
         client.reboot_self()
         sys.exit()
+
 
     main()
 
