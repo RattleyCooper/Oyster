@@ -20,10 +20,11 @@ class Plugin(object):
         # a new empty file is created.
         filepath = realpath(args[0])
         try:
-            with open(filepath, 'r') as f:
+            with open(filepath, 'rb') as f:
                 file_data = f.read()
-        except Exception:
-            file_data = ''
+        except Exception as err:
+            print(str(err))
+            file_data = b''
 
         # Tell the server that the file was read correctly.
         client.send_data('OK')
@@ -33,13 +34,13 @@ class Plugin(object):
         client.send_data(filename)
 
         # Send the original file data.
-        client.send_data(file_data, encode=True)
+        client.send_data(file_data, encode=False)
 
         # Receive the new file data.
-        new_file_data = client.receive_data()
+        new_file_data = client.receive_data(decode=False)
 
         # Write the new file data to a file.
-        with open(filepath, 'w') as f:
+        with open(filepath, 'wb') as f:
             f.write(new_file_data)
 
         # Tell the server the new file data has been written.

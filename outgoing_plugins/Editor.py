@@ -14,11 +14,12 @@ class Plugin(object):
 
         # Handle the args.
         if len(args) > 2:
-            editor, flags, filepath = args[0], args[1:-1], args[-1]
+            editor, filepath = args[0], args[-1]
         elif len(args) == 2:
             editor, filepath = args
         elif len(args) == 1:
-            editor, filepath = 'suplemon', args[0]
+            editor, filepath, flags = 'suplemon', args[0], []
+            args.insert(0, 'suplemon')
         else:
             print('< Editing requires a filepath in order to function. >')
             return
@@ -34,37 +35,48 @@ class Plugin(object):
             return
 
         # Receive the filename.
-        temp_file = server.connection_mgr.current_connection.get_response()
-        if temp_file[:7] == 'ERROR: ':
-            print(temp_file)
+        temp_file_name = server.connection_mgr.current_connection.get_response()
+        if temp_file_name[:7] == 'ERROR: ':
+            print(temp_file_name)
             return
 
         # Create a temporary file
-        temp_file = '_t_e_m_p_.{}'.format(temp_file.split('.')[-1])
+        temp_file_name = '_e_d_i_t__t_e_m_p_.{}'.format(temp_file_name.split('.')[-1])
 
         # Get the file data.
-        file_data = server.connection_mgr.current_connection.get_response()
-        with open(temp_file, 'w') as f:
+        file_data = server.connection_mgr.current_connection.get_response(decode=False)
+        with open(temp_file_name, 'wb') as f:
             f.write(file_data)
             f.close()
 
         # Open editor process to edit the file.
-        p = Popen(args=[editor, temp_file])
+        # get the index of the filepath
+        findex = args.index(filepath)
+
+        # insert the temporary filename at
+        # the index.
+        args.insert(findex, temp_file_name)
+
+        # remove the original filepath
+        args.remove(filepath)
+
+        # Open the process.
+        p = Popen(args=args)
         p.communicate()
         p.terminate()
 
         # Open the temporary file and send the file data over to the client.
         # If the file was saved after editing, then the changes will be
         # made to the file client-side!
-        with open(temp_file, 'r') as f:
+        with open(temp_file_name, 'rb') as f:
             new_file_data = f.read()
-            r = server.send_command(new_file_data)
+            r = server.send_command(new_file_data, encode=False)
             if r.strip() != 'OK':
                 print(r)
                 return
 
         # Remove the temporary file.
-        remove(temp_file)
+        remove(temp_file_name)
         return
 
 

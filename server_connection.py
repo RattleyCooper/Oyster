@@ -65,6 +65,7 @@ class ServerConnection(object):
         :param command:
         :param echo:
         :param encode:
+        :param file_response:
         :return:
         """
 
@@ -79,11 +80,12 @@ class ServerConnection(object):
 
         pass
 
-    def get_response(self, echo=False):
+    def get_response(self, echo=False, decode=True):
         """
         Receive a response from the server.
 
         :param echo:
+        :param decode:
         :return:
         """
 
@@ -105,6 +107,7 @@ class HeaderServer(ServerConnection):
         :param command:
         :param echo:
         :param encode:
+        :param file_response:
         :return:
         """
 
@@ -112,8 +115,9 @@ class HeaderServer(ServerConnection):
             print('Sending Command: {}'.format(command))
 
         try:
-            command = command.decode('utf-8')
-        except AttributeError:
+            if encode:
+                command = command.decode('utf-8')
+        except (AttributeError, UnicodeDecodeError):
             command = command
 
         try:
@@ -122,7 +126,9 @@ class HeaderServer(ServerConnection):
                 lp = str.encode(bytes_packet(command))
                 data = lp + command
             else:
-                lp = bytes_packet(str.encode(command))
+                lp = str.encode(bytes_packet(command))
+                if type(command) == str:
+                    command = str.encode(command)
                 data = lp + command
 
             self.connection.send(data)
@@ -305,11 +311,12 @@ class HeaderServer(ServerConnection):
 
         return data
 
-    def get_response(self, echo=False):
+    def get_response(self, echo=False, decode=True):
         """
         Receive a response from the server.
 
         :param echo:
+        :param decode:
         :return:
         """
 
@@ -324,7 +331,8 @@ class HeaderServer(ServerConnection):
         output = str.encode(start_data) + data if type(data) == bytes else str.encode(data)
         if echo:
             print('< Response: {} >'.format(output))
-        output = output.decode('utf-8')
+        if decode:
+            output = output.decode('utf-8')
         return output
 
 
@@ -411,11 +419,12 @@ class TerminatingServer(ServerConnection):
 
         return filepath
 
-    def get_response(self, echo=False):
+    def get_response(self, echo=False, decode=True):
         """
         Receive a response from the server.
 
         :param echo:
+        :param decode:
         :return:
         """
 

@@ -70,7 +70,7 @@ class ClientConnection(object):
 
         pass
 
-    def receive_data(self, echo=False):
+    def receive_data(self, echo=False, decode=True):
         """
         Receive data from the server until we get the termination string or the amount of
         data specified in the header.
@@ -160,7 +160,7 @@ class TerminatingClient(ClientConnection):
 
         return self
 
-    def receive_data(self, echo=False):
+    def receive_data(self, echo=False, decode=True):
         """
         Receive data from the server until we get the termination string.
 
@@ -259,7 +259,8 @@ class HeaderClient(ClientConnection):
         """
 
         try:
-            some_data = some_data.decode('utf-8')
+            if encode:
+                some_data = some_data.decode('utf-8')
         except (AttributeError, UnicodeDecodeError):
             some_data = some_data
 
@@ -280,7 +281,7 @@ class HeaderClient(ClientConnection):
 
         return self
 
-    def receive_data(self, echo=False):
+    def receive_data(self, echo=False, decode=True):
         """
         Receive bytes and convert them into a string if decode is set to True
 
@@ -349,7 +350,8 @@ class HeaderClient(ClientConnection):
         output = str.encode(start_data) + data if type(data) == bytes else str.encode(data)
         if echo:
             print('< Response: {} >'.format(output))
-        output = output.decode('utf-8')
+        if decode:
+            output = output.decode('utf-8')
         return output
 
     def terminate(self):

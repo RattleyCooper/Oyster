@@ -44,28 +44,32 @@ class Plugin(object):
     invocation = 'client'
     enabled = True
 
-    def run(self, server, data):
+    @staticmethod
+    def run(server, data):
         args = shlex.split(data)
 
         if not args:
             pass
 
         if args[0] == '-i':
-            # Tell the client we want an interactive python shell.
-            server.connection_mgr.send_command('client -i')
-            while True:
-                # Ask for a command to send to the client.
-                command = safe_input('>>> ')
-                # Handle the exit() command if needed.
-                if command == 'exit()':
-                    server.connection_mgr.send_command(command)
-                    break
-                # Send the command to the client and print the response..
-                response = server.connection_mgr.send_command(command)
-                if response.strip():
-                    print(response.strip())
-            return
+            Plugin.start_python_shell(server)
 
         # Send the command to the client if it doesn't need to be intercepted!
         print(server.connection_mgr.send_command('client {}'.format(data)), end='')
 
+    @staticmethod
+    def start_python_shell(server):
+        # Tell the client we want an interactive python shell.
+        server.connection_mgr.send_command('client -i')
+        while True:
+            # Ask for a command to send to the client.
+            command = safe_input('>>> ')
+            # Handle the exit() command if needed.
+            if command == 'exit()':
+                server.connection_mgr.send_command(command)
+                break
+            # Send the command to the client and print the response..
+            response = server.connection_mgr.send_command(command)
+            if response.strip():
+                print(response.strip())
+        return

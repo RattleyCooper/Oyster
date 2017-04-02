@@ -144,6 +144,17 @@ o       O o   O `Ooo.   O   OooO'  o
         response = self.connection_mgr.send_command(data, echo=echo, encode=encode, file_response=file_response)
         return response
 
+    def get_response(self, echo=False, decode=True):
+        """
+        Get a response from the current connection in the conneciton manager.
+
+        :param echo:
+        :param decode:
+        :return:
+        """
+
+        return self.connection_mgr.current_connection.get_response(echo=echo, decode=decode)
+
     def listener(self, shutdown_event):
         """
         Start listening for connections.
