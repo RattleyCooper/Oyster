@@ -14,6 +14,9 @@ from server_connection import HeaderServer, TerminatingServer
 from server_connection import ConnectionManager
 
 
+# todo: use curses for the command line prompt so the TAB key can be used like it is on unix systems.
+
+
 def get_arg_dict(args):
     """
     Get a dictionary of keyword arguments.
