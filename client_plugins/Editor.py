@@ -20,7 +20,7 @@ class Plugin(object):
     to open any text file for editing without having to type the name of the editor.
 
     For more complicated editing(audio, pictures, video, etc), you can tag the
-    filename in question with `<f> and provide more arguments.
+    filename in question with `<f>` and provide more arguments.
 
     Example of using imagemagick to resize a picture:
 
