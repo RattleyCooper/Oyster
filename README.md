@@ -158,6 +158,9 @@ client -g {key}                                 -   Wrapper around
 client -r                                       -   Reboot the client.py
                                                     script.
                                                     
+client -sh                                      -   Shut down the client.py
+                                                    script.
+                                                    
 client -i                                       -   Enter an interactive 
                                                     Python console. Use 
                                                     `exit()` to exit.  
