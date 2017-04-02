@@ -7,7 +7,8 @@ class Plugin(object):
     invocation = '# '
     enabled = True
 
-    def run(self, client, data):
+    @staticmethod
+    def run(client, data):
         args = shlex.split(data)
 
         if not args:
