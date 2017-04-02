@@ -85,7 +85,7 @@ class Plugin(object):
                                     Any attributes changed
 
         client -sh              -   Shutdown the client.
-        
+
     Example:
 
         <127.0.0.1> /Users/user/Oyster> client -i
