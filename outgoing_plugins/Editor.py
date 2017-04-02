@@ -95,7 +95,12 @@ class Plugin(object):
         # Any more than 2 arguments and tagged filenames are
         # required.
         if len(args) > 2:
-            filepaths = [fp[3:] for fp in args if fp.startswith('<f>')]
+            filepaths = []
+            for arg in args:
+                if '<f>' in arg:
+                    fi = arg.index('<f>')
+                    filepaths.append(arg[fi + 3:])
+            # filepaths = [fp[3:] for fp in args if fp.startswith('<f>')]
             if not filepaths:
                 print('< Editing requires a filepath in order to function. >')
                 return
