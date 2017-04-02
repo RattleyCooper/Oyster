@@ -150,7 +150,7 @@ class Plugin(object):
             f.close()
 
         # Replace tagged file names with the temporary filename.
-        args = [arg if arg[:3] != '<f>' else temp_file_name for arg in args]
+        args = [arg if '<f>' not in arg else temp_file_name for arg in args]
 
         # Open the process.
         p = Popen(args=args)
