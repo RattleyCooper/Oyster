@@ -1,5 +1,6 @@
 import shlex
 from os import remove
+from os.path import expanduser
 from subprocess import Popen
 
 
@@ -49,16 +50,20 @@ class Plugin(object):
             f.write(file_data)
             f.close()
 
-        # Open editor process to edit the file.
-        # get the index of the filepath
-        findex = args.index(filepath)
+        while True:
+            # Open editor process to edit the file.
+            # get the index of the filepath
+            try:
+                findex = args.index(filepath)
+            except ValueError:
+                break
 
-        # insert the temporary filename at
-        # the index.
-        args.insert(findex, temp_file_name)
+            # insert the temporary filename at
+            # the index.
+            args.insert(findex, temp_file_name)
 
-        # remove the original filepath
-        args.remove(filepath)
+            # remove the original filepath
+            args.remove(filepath)
 
         # Open the process.
         p = Popen(args=args)

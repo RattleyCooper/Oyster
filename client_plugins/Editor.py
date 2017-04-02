@@ -1,8 +1,21 @@
 import shlex
-from os.path import realpath
+from os import getcwd
+from os.path import realpath, expanduser
 
 
 class Plugin(object):
+    """
+    This plugin is designed for editing files!
+
+    As it stands, only small files are supported.
+
+    Any file that can be opened and edited from the command line with the following syntax:
+
+        > program -flags filepath
+
+    Can be edited.
+    """
+
     version = 'v1.0'
     invocation = '# '
     enabled = True
@@ -18,7 +31,11 @@ class Plugin(object):
         # if there is no file, then set the
         # file data to an empty string so
         # a new empty file is created.
-        filepath = realpath(args[0])
+        if args[0][:2] == '~/':
+            filepath = expanduser(args[0])
+        elif '/' not in args[0] and '\\' not in args[0]:
+            filepath = getcwd() + '/' + args[0]
+
         try:
             with open(filepath, 'rb') as f:
                 file_data = f.read()
