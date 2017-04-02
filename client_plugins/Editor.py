@@ -5,6 +5,8 @@ from os.path import realpath, expanduser
 
 class Plugin(object):
     """
+    Editor v1.0 - Client-Side
+
     This plugin is designed for editing files!
 
     As it stands, only small files are supported.

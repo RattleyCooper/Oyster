@@ -5,6 +5,25 @@ from subprocess import Popen
 
 
 class Plugin(object):
+    """
+    Editor v1.0 - Server-Side
+
+    This plugin is designed for editing files!
+
+    As it stands, only small files are supported.
+
+    Any file that can be opened and edited from the command line with the following syntax:
+
+        > {program} {flags} {filepath}
+
+    Can be edited using the syntax:
+
+        > # {program} {flags} {filepath}
+
+    It is important that {program} is the first argument, after the `#`,
+    and {filepath} is the last argument.
+    """
+
     version = 'v1.0'
     invocation = '# '
     enabled = True
