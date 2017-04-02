@@ -18,7 +18,7 @@ class Plugin(object):
         > # {program} {flags} {filepath}
 
     It is important that {program} is the first argument, after the `#`,
-    and {filepath} are is the last argument.
+    and {filepath} is the last argument.
     """
 
     version = 'v1.0'
