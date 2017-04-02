@@ -69,9 +69,27 @@ class Client(PluginRunner):
         )
 
     def send_data(self, some_data, echo=True, encode=True, chunks=False):
+        """
+        Wrapper around ClientConnection.send_data
+
+        :param some_data:
+        :param echo:
+        :param encode:
+        :param chunks:
+        :return:
+        """
+
         return self.sock.send_data(some_data, echo=echo, encode=encode, chunks=chunks)
 
     def receive_data(self, echo=False, decode=True):
+        """
+        Wrapper around ClientConnection.receive_data
+
+        :param echo:
+        :param decode:
+        :return:
+        """
+
         return self.sock.receive_data(echo=echo, decode=decode)
 
     def handle_disconnect(self):
