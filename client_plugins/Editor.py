@@ -1,11 +1,11 @@
 import shlex
 from os import getcwd
-from os.path import realpath, expanduser
+from os.path import expanduser
 
 
 class Plugin(object):
     """
-    Editor v1.0 - Client-Side
+    Editor v1.0 - Server-Side
 
     This plugin is designed for using local server-side tools to edit client-side files!
 
@@ -21,6 +21,12 @@ class Plugin(object):
 
     It is important that {program} is the first argument, after the `#`,
     and {filepath} is the last argument.
+
+    If you have `suplemon` installed, you can use the syntax:
+
+        > # {filepath}
+
+    to open any text file for editing without having to type the name of the editor.
     """
 
     version = 'v1.0'

@@ -1,6 +1,5 @@
 import shlex
 from os import remove
-from os.path import expanduser
 from subprocess import Popen
 
 
@@ -22,6 +21,12 @@ class Plugin(object):
 
     It is important that {program} is the first argument, after the `#`,
     and {filepath} is the last argument.
+
+    If you have `suplemon` installed, you can use the syntax:
+
+        > # {filepath}
+
+    to open any text file for editing without having to type the name of the editor.
     """
 
     version = 'v1.0'
