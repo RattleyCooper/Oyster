@@ -11,9 +11,14 @@ class Plugin(object):
 
     Any file that can be opened and edited from the command line with the following syntax:
 
-        > program -flags filepath
+        > {program} {flags} {filepath}
 
-    Can be edited.
+    Can be edited using the syntax:
+
+        > # {program} {flags} {filepath}
+
+    It is important that {program} is the first argument, after the `#`,
+    and {filepath} are is the last argument.
     """
 
     version = 'v1.0'
@@ -29,8 +34,8 @@ class Plugin(object):
 
         # Get the filepath and open the file.
         # if there is no file, then set the
-        # file data to an empty string so
-        # a new empty file is created.
+        # file data to an empty byte string
+        # so a new empty file is created.
         if args[0][:2] == '~/':
             filepath = expanduser(args[0])
         elif '/' not in args[0] and '\\' not in args[0]:
