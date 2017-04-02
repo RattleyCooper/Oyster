@@ -318,3 +318,34 @@ Example:
 ```
 python3 client.py host=10.0.0.215 port=6667 recv_size=1024
 ```
+
+### File Editor:
+
+This plugin is designed for using local server-side tools to edit client-
+side files!  As it stands, only small files are supported. Any file that 
+can be opened and edited from the command line should be editable!  This
+isn't limited to text files either.
+
+If you have `suplemon` installed locally, you can use the syntax:
+
+    <127.0.0.1> /Users/user/Oyster> # {filepath}
+
+to open any text file for editing without having to type the name of the 
+editor.
+
+For more complicated editing(audio, pictures, video, etc), you can tag 
+the filename in question with `<f>` and provide more arguments.
+
+Example of using imagemagick to resize a picture:
+
+    `/Users/user/Pictures> magick ~/Pictures/drink.jpg -resize 50% drink.jpg`
+
+  becomes
+
+    `/Users/user/Pictures> # magick <f>~/Pictures/drink.jpg -resize 50% <f>drink.jpg`
+
+If you ran the first example, it would try to use imagemagick on the 
+client machine whereas the second example would grab the filedata(for 
+the first tagged filename in the command), from the client machine and 
+then use imagemagick to edit it locally before sending the modified data 
+back to the client.
