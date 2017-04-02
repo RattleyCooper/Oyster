@@ -107,6 +107,7 @@ class Plugin(object):
         # set in the static variable Plugin.editor.
         elif len(args) == 1:
             args.insert(0, Plugin.editor)
+            filepath = args[1]
         else:
             print('< Editing requires a filepath in order to function. >')
             return
