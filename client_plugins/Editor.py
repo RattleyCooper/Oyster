@@ -34,6 +34,13 @@ class Plugin(object):
     whereas the second example would grab the filedata(for the first tagged filename in
     the command), from the client machine and then use imagemagick to edit it locally
     before sending the modified data back to the client.
+
+    Options:
+
+        -p              -   If you are running a more complex edit and the program
+                            you are using to edit is non-blocking, then use the
+                            -p option to pause after the program is opened.  It
+                            will wait until you hit return before continuing.
     """
 
     version = 'v1.0'

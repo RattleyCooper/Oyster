@@ -34,6 +34,7 @@
 import shlex
 from os import remove
 from subprocess import Popen
+from common import safe_input
 
 
 class Plugin(object):
@@ -67,6 +68,13 @@ class Plugin(object):
     whereas the second example would grab the filedata(for the first tagged filename in
     the command), from the client machine and then use imagemagick to edit it locally
     before sending the modified data back to the client.
+
+    Options:
+
+        -p              -   If you are running a more complex edit and the program
+                            you are using to edit is non-blocking, then use the
+                            -p option to pause after the program is opened.  It
+                            will wait until you hit return before continuing.
     """
 
     version = 'v1.0'
@@ -79,6 +87,10 @@ class Plugin(object):
     def run(server, data):
         args = shlex.split(data, posix=False)
 
+        pause = False
+        if args[0] == '-p':
+            pause = True
+            args.pop(0)
         # Modify the args so that they can be passed to Popen.
         # Any more than 2 arguments and tagged filenames are
         # required.
@@ -142,6 +154,9 @@ class Plugin(object):
         p = Popen(args=args)
         p.communicate()
         p.terminate()
+
+        if pause:
+            safe_input('< Ready? >')
 
         # Open the temporary file and send the file data over to the client.
         # If the file was saved after editing, then the changes will be
