@@ -7,7 +7,7 @@ class Plugin(object):
     """
     Editor v1.0 - Client-Side
 
-    This plugin is designed for editing files!
+    This plugin is designed for using local server-side tools to edit client-side files!
 
     As it stands, only small files are supported.
 
