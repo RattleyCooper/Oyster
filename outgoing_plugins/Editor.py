@@ -102,12 +102,13 @@ class Plugin(object):
             filepath = filepaths[0]
         # Just 2 arguments means the editor will be the first argument.
         elif len(args) == 2:
-            filepath = args[1]
+            filepath = '<f>{}'.format(args[1])
         # 1 arg means we need to open up the file with the editor
         # set in the static variable Plugin.editor.
         elif len(args) == 1:
             args.insert(0, Plugin.editor)
-            filepath = args[1]
+            filepath = '<f>{}'.format(args[1])
+            args[1] = filepath
         else:
             print('< Editing requires a filepath in order to function. >')
             return
