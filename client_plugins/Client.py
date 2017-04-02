@@ -83,6 +83,9 @@ class Plugin(object):
 
         client -r               -   Reboot the `client.py` script.
                                     Any attributes changed
+
+        client -sh              -   Shutdown the client.
+        
     Example:
 
         <127.0.0.1> /Users/user/Oyster> client -i
@@ -161,6 +164,11 @@ class Plugin(object):
         if args[0] == '-r':
             client.send_data('')
             Plugin.reboot_client(client)
+            sys.exit()
+
+        # Shutdown the `client.py` script.
+        if args[0] == '-sh':
+            client.send_data('')
             sys.exit()
 
         # Use an interactive shell to capture the output of the `help` command.
