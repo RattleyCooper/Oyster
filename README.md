@@ -196,8 +196,9 @@ on how everything works under the hood.
 
 The basic idea is that a `command`/`data` is dispatched to the `client` 
 from the `server`, and then the `client` responds with a `result` and 
-waits for another `command`. The `client` _must_ respond with _something_
-when the server sends it something, even if it is a blank string.  
+waits for another `command`. The `client` _should_ response with 
+_something_ to let the server know it is finished with it's job, 
+or to send it data.
 
 Example:
 
@@ -226,12 +227,14 @@ client.terminate()
 ```
 
 It's important to note that setting the `chunks` flag only tells the
-`client` not to send the termination string back to the server.
+`client` not to send the termination string back to the server, so 
+depending on which `ServerConnection` and `ClientConnection` objects
+you are using, you may not be able to use the `chunks` flag.
 
 A lot of commands can be implemented with a client-side plugin, however 
 in certain cases a `server` plugin, or Oyster `shell` plugin would be 
-required for more advanced functionality(downloading files or something 
-similar).
+required for more advanced functionality(downloading files, editing
+files remotely).
 
 A client plugin must be a python file with a `Plugin` class that has a 
 `version` attribute, an `invocation` attribute that tells it what 
