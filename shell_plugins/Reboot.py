@@ -23,7 +23,8 @@ class Plugin(object):
     invocation = 'reboot'
     enabled = True
 
-    def run(self, server, data):
+    @staticmethod
+    def run(server, data):
         print('Rebooting...')
         server.reboot_self()
         return

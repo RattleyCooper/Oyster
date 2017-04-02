@@ -1,6 +1,6 @@
 from common import LoopEvent
 from client import Client
-from connection import ClientConnection
+from client_connection import ClientConnection
 
 
 class Plugin(object):
@@ -30,7 +30,8 @@ class Plugin(object):
     invocation = ['quit', 'exit', 'shutdown']
     enabled = True
 
-    def run(self, server, data):
+    @staticmethod
+    def run(server, data):
         print('< Shutting down. >')
 
         # Boot up a client in order to stop the server's listener thread's

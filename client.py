@@ -9,7 +9,7 @@ from common import PluginRunner
 from common import LoopReturnEvent
 from common import LoopContinueEvent
 from common import LoopBreakEvent
-from connection import TerminatingClient, HeaderClient
+from client_connection import TerminatingClient, HeaderClient
 
 
 def get_arg_dict(args):
@@ -47,6 +47,8 @@ class Client(PluginRunner):
     server commands to the OS, or to Client plugins.
     """
 
+    __file__ = sys.argv[0]
+
     def __init__(self, connection_type, host='', port=6667, recv_size=1024, session_id='', echo=True):
         self.host = host
         self.port = port
@@ -56,7 +58,6 @@ class Client(PluginRunner):
         self.ip_address = '0.0.0.0'
         self.connected_port = '00000'
         self.reconnect_to_session = True
-        self.__file__ = __file__
         self.connection_type = connection_type
         self.sock = connection_type(
             host=host,
@@ -68,6 +69,9 @@ class Client(PluginRunner):
 
     def send_data(self, some_data, echo=True, encode=True, chunks=False):
         return self.sock.send_data(some_data, echo=echo, encode=encode, chunks=chunks)
+
+    def receive_data(self, echo=False):
+        return self.sock.receive_data(echo=echo)
 
     def handle_disconnect(self):
         """
@@ -94,8 +98,8 @@ class Client(PluginRunner):
 
         plugin_list = []
         # todo: Make this windows compatible.
-        fp = __file__.replace(__file__.split('/')[-1], '') + 'client_plugins'
-        module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
+        fp = self.__file__.replace(self.__file__.split('/')[-1], '') + 'client_plugins'
+        module_names = [n.replace('.pyc', '').replace('.py', '') for n in os.listdir(fp) if '__init__.py' not in n]
         hidden_files = [n for n in os.listdir(fp) if n[0] == '.']
         module_names = [n for n in module_names if n not in hidden_files]
 
@@ -119,7 +123,7 @@ class Client(PluginRunner):
 
         self.sock.terminate()
 
-    def server_print(self, some_data, echo=True, encode=True, chunks=False):
+    def server_print(self, some_data, echo=True, encode=True, chunks=False, end='\n'):
         """
         A shortcut method to facilitate sending data to the server without worrying about
         whether or not there is a newline character at the end.
@@ -128,10 +132,11 @@ class Client(PluginRunner):
         :param echo:
         :param encode:
         :param chunks:
+        :param end:
         :return:
         """
 
-        some_data = some_data + '\n' if some_data[-1] != '\n' else some_data
+        some_data = some_data + end if some_data[-1] != end else some_data
         self.send_data(some_data, echo=echo, encode=encode, chunks=chunks)
         return
 

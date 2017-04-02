@@ -10,8 +10,8 @@ from common import safe_input
 from common import LoopReturnEvent
 from common import LoopContinueEvent
 from common import LoopBreakEvent
-from connection import HeaderServer, TerminatingServer
-from connection import ConnectionManager
+from server_connection import HeaderServer, TerminatingServer
+from server_connection import ConnectionManager
 
 
 def get_arg_dict(args):
@@ -51,6 +51,9 @@ class Server(PluginRunner):
     """
     A simple command and control server(Reverse Shell).
     """
+
+    __file__ = sys.argv[0]
+
     def __init__(self, connection_type, host="", port=6667, recv_size=1024, listen=10, bind_retry=5, header=True):
         self.header = header
         header = """\n .oOOOo.
@@ -81,6 +84,7 @@ o       O o   O `Ooo.   O   OooO'  o
         self.shell_plugins = []
         self.outgoing_plugins = []
 
+        self.connection_type = connection_type
         self.connection_mgr = ConnectionManager(connection_type)
         self.create_socket()
         self.bind_socket()
@@ -214,9 +218,9 @@ o       O o   O `Ooo.   O   OooO'  o
 
         plugin_list = []
         # Get the filepath of the outgoing plugins based on the filepath of the this file.
-        fp = __file__.replace(__file__.split('/')[-1], '') + 'outgoing_plugins'
+        fp = self.__file__.replace(self.__file__.split('/')[-1], '') + 'outgoing_plugins'
         # Get the names of the modules within the outgoing_plugins folder.
-        module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
+        module_names = [n.replace('.pyc', '').replace('.py', '') for n in os.listdir(fp) if '__init__.py' not in n]
         hidden_files = [n for n in os.listdir(fp) if n[0] == '.']
         module_names = [n for n in module_names if n not in hidden_files]
 
@@ -239,9 +243,9 @@ o       O o   O `Ooo.   O   OooO'  o
 
         plugin_list = []
         # Get the filepath of the shell plugins based on the filepath of the this file.
-        fp = __file__.replace(__file__.split('/')[-1], '') + 'shell_plugins'
+        fp = self.__file__.replace(self.__file__.split('/')[-1], '') + 'shell_plugins'
         # Get the names of the modules within the shell_plugins folder.
-        module_names = [n.replace('.py', '').replace('.pyc', '') for n in os.listdir(fp) if '__init__.py' not in n]
+        module_names = [n.replace('.pyc', '').replace('.py', '') for n in os.listdir(fp) if '__init__.py' not in n]
 
         Server.list_remove(module_names, '__pycache__')
         Server.list_remove(module_names, '.DS_Store')

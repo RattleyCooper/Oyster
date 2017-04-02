@@ -2,7 +2,7 @@ import os
 from os.path import expanduser, getsize
 from base64 import b64encode
 import zipfile, zlib
-from connection import TerminatingClient, HeaderClient
+from client_connection import TerminatingClient, HeaderClient
 
 
 def zipdir(path, ziph):

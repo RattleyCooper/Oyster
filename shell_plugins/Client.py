@@ -46,7 +46,7 @@ class Plugin(object):
                 return
 
         if args[0] == '-d':
-            Plugin.handle_dist_flag()
+            Plugin.handle_dist_flag(server)
             return
 
     @staticmethod
@@ -67,14 +67,14 @@ class Plugin(object):
         return response
 
     @staticmethod
-    def handle_dist_flag():
+    def handle_dist_flag(server):
         """
         Copy the client-specific files into the "dist" folder.
 
         :return:
         """
 
-        oyster_fp = __file__.replace('shell_plugins/', '').replace(__file__.split('/')[-1], '')
+        oyster_fp = server.__file__.replace('shell_plugins/', '').replace(server.__file__.split('/')[-1], '')
         client_plugins_filepath = oyster_fp + 'client_plugins/'
 
         client_plugin_filenames = [n for n in os.listdir(client_plugins_filepath)]
@@ -96,7 +96,7 @@ class Plugin(object):
         copy(oyster_fp + '__init__.py', oyster_fp + 'dist/__init__.py')
         copy(oyster_fp + 'client.py', oyster_fp + 'dist/client.py')
         copy(oyster_fp + 'common.py', oyster_fp + 'dist/common.py')
-        copy(oyster_fp + 'connection.py', oyster_fp + 'dist/connection.py')
+        copy(oyster_fp + 'client_connection.py', oyster_fp + 'dist/client_connection.py')
         copy(oyster_fp + 'update.py', oyster_fp + 'dist/update.py')
 
         print('\r< Finished. >')

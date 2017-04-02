@@ -1,6 +1,6 @@
 import shlex
 from os.path import expanduser
-from connection import HeaderServer
+from server_connection import HeaderServer
 
 
 class Plugin(object):
