@@ -232,7 +232,7 @@ depending on which `ServerConnection` and `ClientConnection` objects
 you are using, you may not be able to use the `chunks` flag.
 
 A lot of commands can be implemented with a client-side plugin, however 
-in certain cases a `server` plugin, or Oyster `shell` plugin would be 
+in certain cases an `outgoing` plugin, or Oyster `shell` plugin would be 
 required for more advanced functionality(downloading files, editing
 files remotely).
 
@@ -269,7 +269,7 @@ instead of a `Client` instance.  The `Server` instance uses a method
 called `send_command` to send data to the `Client` instead of `send_data` 
 or `server_print`.
 
-A `shell` plugin only runs if you are in the `Oyster>` shell.  A server 
+A `shell` plugin only runs if you are in the `Oyster>` shell.  An `outgoing` 
 plugin runs on the server-side just before a command is sent to a client.
 This enables all sorts of additional functionality like sending commands 
 to all of the connected clients at once. The `Server` uses the
