@@ -201,7 +201,7 @@ class Plugin(object):
         console = Shell(filename='< Remote Python Console >', locals=l)
         while True:
             # Receive a command.
-            command = client.connection.receive_data()
+            command = client.sock.receive_data()
             # Check for the exit.
             if command == 'exit()':
                 client.server_print('< InteractiveConsole shutting down. >')
@@ -221,7 +221,7 @@ class Plugin(object):
         """
 
         try:
-            client.connection.close()
+            client.sock.close()
         except socket.error:
             pass
 
