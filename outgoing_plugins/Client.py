@@ -53,6 +53,7 @@ class Plugin(object):
 
         if args[0] == '-i':
             Plugin.start_python_shell(server)
+            return
 
         # Send the command to the client if it doesn't need to be intercepted!
         print(server.connection_mgr.send_command('client {}'.format(data)), end='')
