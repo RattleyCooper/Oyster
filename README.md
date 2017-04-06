@@ -288,24 +288,6 @@ override an OS command and want to use it, escape it(`\cd`). Look at the
 of how the `cd` command is actually implemented in python, and not using 
 the native OS command.
 
-### Using `sudo` with connected clients
-
-`echo` the password and pipe it into the `sudo` command with the `-S`
-flag.
-
-```
-echo "ClientsPassword" | sudo -S chown $USER:admin /usr/local/include
-```
-
-You may need to add a newline character to the end of your password.
-
-```
-echo "ClientsPassword\n" | sudo -S chown $USER:admin /usr/local/include
-```
-
-Check out the `man` pages for `sudo` on the client if this doesn't work.
-I'm not sure how much the `-S` flag differs between unix flavours.
-
 ## Client
 
 Start `client.py` on the target machine.  The client should keep itself
