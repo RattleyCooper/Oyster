@@ -127,7 +127,11 @@ class Client(PluginRunner):
         except ValueError:
             pass
 
+        module_names = [m for m in module_names if m != '']
+
+        print('Module names:', module_names)
         for module_name in module_names:
+            print('Module name:', module_name)
             module = __import__('client_plugins.' + module_name, fromlist=[''])
             plugin_list.append(module)
 
@@ -326,4 +330,6 @@ if __name__ == '__main__':
         sys.exit()
 
     main()
+
+
 

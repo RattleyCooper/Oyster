@@ -1,6 +1,9 @@
 from base64 import b64decode
 from uuid import uuid4
-from common import bytes_packet
+try:
+    from common import bytes_packet
+except ImportError:
+    from .common import bytes_packet
 
 
 class ServerConnection(object):
@@ -100,7 +103,7 @@ class HeaderServer(ServerConnection):
     def __init__(self, sock, address, recv_size=1024):
         super(HeaderServer, self).__init__(sock, address, recv_size=recv_size)
 
-    def send_command(self, command, echo=False, encode=True, file_response=False):
+    def send_command(self, command, echo=False, encode=True, file_response=False, response=True):
         """
         Send a command to the connection.
 
@@ -108,6 +111,7 @@ class HeaderServer(ServerConnection):
         :param echo:
         :param encode:
         :param file_response:
+        :param response:
         :return:
         """
 
@@ -146,7 +150,10 @@ class HeaderServer(ServerConnection):
             print('< Getting file response. >')
             return self.get_file_response(file_response)
 
-        return self.get_response()
+        if response:
+            return self.get_response()
+
+        return ''
 
     def get_file_response(self, filepath, echo=False):
         """
@@ -344,7 +351,7 @@ class TerminatingServer(ServerConnection):
     def __init__(self, connection, address, recv_size=1024):
         super(TerminatingServer, self).__init__(connection, address, recv_size=recv_size)
 
-    def send_command(self, command, echo=False, encode=True, file_response=False):
+    def send_command(self, command, echo=False, encode=True, file_response=False, response=True):
         """
         Send a command to the connection.
 
@@ -352,6 +359,7 @@ class TerminatingServer(ServerConnection):
         :param echo:
         :param encode:
         :param file_response:
+        :param response:
         :return:
         """
 
@@ -377,7 +385,10 @@ class TerminatingServer(ServerConnection):
             print('< Getting file response. >')
             return self.get_file_response(file_response)
 
-        return self.get_response()
+        if response:
+            return self.get_response()
+
+        return ''
 
     def get_file_response(self, filepath, echo=False):
         """
@@ -597,7 +608,7 @@ class ConnectionManager(object):
             self.connections.pop(ip)
         return self
 
-    def send_command(self, command, echo=False, encode=True, file_response=False):
+    def send_command(self, command, echo=False, encode=True, file_response=False, response=True):
         """
         Send a command to the currently selected client.
 
@@ -605,6 +616,7 @@ class ConnectionManager(object):
         :param echo:
         :param encode:
         :param file_response:
+        :param response:
         :return:
         """
 
@@ -619,7 +631,12 @@ class ConnectionManager(object):
             return ''
 
         try:
-            response = self.current_connection.send_command(command, encode=encode, file_response=file_response)
+            response = self.current_connection.send_command(
+                command,
+                encode=encode,
+                file_response=file_response,
+                response=response
+            )
         except BrokenPipeError as err_msg:
             self.current_connection = None
             return ''
@@ -628,12 +645,13 @@ class ConnectionManager(object):
             print(response)
         return response
 
-    def send_commands(self, command, echo=False):
+    def send_commands(self, command, echo=False, response=True):
         """
         Send a command to all of the clients.
 
         :param command:
         :param echo:
+        :param response:
         :return:
         """
 
@@ -645,7 +663,7 @@ class ConnectionManager(object):
                 self.remove_connection(self.current_connection)
                 self.current_connection = None
                 continue
-            response += connection.send_command(command)
+            response += connection.send_command(command, response=response)
 
         self.current_connection = None
         if echo:

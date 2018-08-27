@@ -2,7 +2,10 @@ import sys
 from base64 import b64decode
 from uuid import uuid4
 from time import sleep
-from common import bytes_packet
+try:
+    from common import bytes_packet
+except ImportError:
+    from .common import bytes_packet
 import socket
 
 
